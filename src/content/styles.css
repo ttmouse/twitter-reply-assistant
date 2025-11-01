@@ -1,0 +1,54 @@
+/* Content Script Styles */
+/* Styles for AI reply button and UI injected into Twitter */
+
+/* AI 按钮容器 */
+.twitter-ai-button-container {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+/* AI 回复按钮 */
+.twitter-ai-reply-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+/* 风格选择器 */
+.twitter-ai-style-selector {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* 风格选项 */
+.twitter-ai-style-option {
+  font-family: inherit;
+}
+
+.twitter-ai-style-option:hover {
+  background-color: #f7f9f9;
+}
+
+.twitter-ai-style-option:active {
+  background-color: #eff3f4;
+}
+
+/* 防止样式冲突 */
+.twitter-ai-button-container * {
+  box-sizing: border-box;
+}
+
+/* 加载动画 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.twitter-ai-loading {
+  animation: spin 1s linear infinite;
+}
