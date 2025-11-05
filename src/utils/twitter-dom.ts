@@ -20,9 +20,32 @@ export class TwitterDOM {
   /**
    * 从推文元素中提取文本内容
    */
-  static getTweetText(tweetElement: HTMLElement): string | null {
+  static async getTweetText(tweetElement: HTMLElement): Promise<string | null> {
     const textElement = tweetElement.querySelector(TWITTER_SELECTORS.TWEET_TEXT);
     if (!textElement) return null;
+
+    // 检查推文是否有"Show more"按钮
+    const showMoreButton = tweetElement.querySelector(TWITTER_SELECTORS.SHOW_MORE_BUTTON) as HTMLElement;
+
+    if (showMoreButton) {
+      console.log('[TwitterDOM] 发现推文有 Show more 按钮，点击展开...');
+      try {
+        // 点击 Show more 按钮
+        showMoreButton.click();
+
+        // 等待内容展开
+        await this.waitForContentExpanded(tweetElement, 2000);
+
+        // 重新获取展开后的文本
+        const expandedText = tweetElement.querySelector(TWITTER_SELECTORS.TWEET_TEXT)?.textContent?.trim();
+        console.log('[TwitterDOM] 推文展开后文本:', expandedText?.substring(0, 100) + '...');
+        return expandedText || null;
+      } catch (error) {
+        console.warn('[TwitterDOM] 点击推文 Show more 按钮失败:', error);
+        // 如果点击失败，返回当前文本
+        return textElement.textContent?.trim() || null;
+      }
+    }
 
     return textElement.textContent?.trim() || null;
   }
@@ -336,13 +359,36 @@ export class TwitterDOM {
   /**
    * 从回复弹窗中获取原推文文本
    * 策略：
-   * 1. 在弹窗中查找引用的推文内容
+   * 1. 在弹窗中查找引用的推文内容，处理截断情况
    * 2. 从 URL 中提取推文 ID，然后在页面中查找对应推文
    */
-  static getTweetTextFromReplyDialog(dialog: HTMLElement): string | null {
+  static async getTweetTextFromReplyDialog(dialog: HTMLElement): Promise<string | null> {
     // 策略 1: 在弹窗内部查找引用的推文
-    const quotedTweet = dialog.querySelector('[data-testid="tweetText"]');
+    const quotedTweet = dialog.querySelector(TWITTER_SELECTORS.TWEET_TEXT);
     if (quotedTweet) {
+      // 检查是否有"Show more"按钮
+      const showMoreButton = dialog.querySelector(TWITTER_SELECTORS.SHOW_MORE_BUTTON) as HTMLElement;
+
+      if (showMoreButton) {
+        console.log('[TwitterDOM] 发现 Show more 按钮，点击展开内容...');
+        try {
+          // 点击 Show more 按钮
+          showMoreButton.click();
+
+          // 等待内容展开
+          await this.waitForContentExpanded(dialog, 2000);
+
+          // 重新获取展开后的文本
+          const expandedText = dialog.querySelector(TWITTER_SELECTORS.TWEET_TEXT)?.textContent?.trim();
+          console.log('[TwitterDOM] 展开后的推文文本:', expandedText?.substring(0, 100) + '...');
+          return expandedText || null;
+        } catch (error) {
+          console.warn('[TwitterDOM] 点击 Show more 按钮失败:', error);
+          // 如果点击失败，返回当前文本
+          return quotedTweet.textContent?.trim() || null;
+        }
+      }
+
       return quotedTweet.textContent?.trim() || null;
     }
 
@@ -355,7 +401,7 @@ export class TwitterDOM {
       for (const tweet of tweets) {
         const link = tweet.querySelector(`a[href*="/status/${tweetId}"]`);
         if (link) {
-          return this.getTweetText(tweet);
+          return await this.getTweetText(tweet);
         }
       }
     }
@@ -364,7 +410,7 @@ export class TwitterDOM {
     const allTweets = this.getAllTweets();
     if (allTweets.length > 0) {
       // 返回第一条推文（通常是正在回复的推文）
-      return this.getTweetText(allTweets[0]);
+      return await this.getTweetText(allTweets[0]);
     }
 
     return null;
@@ -464,6 +510,32 @@ export class TwitterDOM {
 
     console.warn('[TwitterDOM] 未能找到工具栏容器');
     return null;
+  }
+
+  /**
+   * 等待内容展开完成
+   */
+  static async waitForContentExpanded(container: HTMLElement, timeout = 2000): Promise<void> {
+    const startTime = Date.now();
+    const initialText = container.querySelector(TWITTER_SELECTORS.TWEET_TEXT)?.textContent?.length || 0;
+
+    while (Date.now() - startTime < timeout) {
+      // 检查 Show more 按钮是否消失了
+      const showMoreButton = container.querySelector(TWITTER_SELECTORS.SHOW_MORE_BUTTON);
+      if (!showMoreButton) {
+        // 检查文本长度是否发生了变化
+        const currentText = container.querySelector(TWITTER_SELECTORS.TWEET_TEXT)?.textContent?.length || 0;
+        if (currentText > initialText) {
+          console.log('[TwitterDOM] 内容已展开完成');
+          return;
+        }
+      }
+
+      // 等待 100ms 再检查
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    console.log('[TwitterDOM] 等待内容展开超时');
   }
 
   /**

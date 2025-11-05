@@ -3,51 +3,89 @@
 @tailwind utilities;
 
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
 
-  /* Modern Color Palette */
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-secondary: #6b7280;
-  --color-success: #10b981;
-  --color-error: #ef4444;
-  --color-warning: #f59e0b;
+  /* 极简克制深色主题 - 炭黑、石墨灰主色 */
+  --color-primary: #6B7FFF;
+  --color-primary-hover: #5A6FE6;
+  --color-accent: #9D7FFF;
+  --color-accent-hover: #8A6CFF;
+  --color-secondary: #A0A0B0;
+  --color-success: #5FCF80;
+  --color-success-hover: #4CB869;
+  --color-error: #FF6B6B;
+  --color-error-hover: #E55555;
+  --color-warning: #FFB366;
+  --color-warning-hover: #FF9944;
 
-  /* Neutral Colors */
-  --color-bg-base: #ffffff;
-  --color-bg-subtle: #f9fafb;
-  --color-bg-muted: #f3f4f6;
-  --color-border-light: #e5e7eb;
-  --color-border-medium: #d1d5db;
+  /* 炭黑、石墨灰中性色系统 */
+  --color-bg-base: #1A1A1A;
+  --color-bg-subtle: #222222;
+  --color-bg-muted: #2A2A2A;
+  --color-bg-raised: #333333;
+  --color-bg-elevated: #3D3D3D;
+  --color-bg-surface: #404040;
 
-  /* Text Colors */
-  --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
-  --color-text-tertiary: #9ca3af;
+  /* 超细腻边框色彩 */
+  --color-border-subtle: rgba(255, 255, 255, 0.03);
+  --color-border-light: rgba(255, 255, 255, 0.06);
+  --color-border-medium: rgba(255, 255, 255, 0.10);
+  --color-border-strong: rgba(255, 255, 255, 0.15);
+  --color-border-focus: #6B7FFF;
+  --color-border-divider: rgba(255, 255, 255, 0.04);
 
-  /* Shadow System */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-base: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  /* 冷色调文字层级系统 */
+  --color-text-primary: #F8F8FA;
+  --color-text-secondary: #D4D4DC;
+  --color-text-tertiary: #9A9AA8;
+  --color-text-muted: #707080;
+  --color-text-disabled: #505060;
 
-  /* Border Radius */
-  --radius-sm: 6px;
-  --radius-base: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  /* 精准间距系统 - 8px 网格 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
 
-  /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* 精细圆角系统 */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-base: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+
+  /* 克制的过渡动画 */
+  --transition-instant: 0ms;
+  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
   margin: 0;
   min-width: 320px;
-  background-color: var(--color-bg-subtle);
+  background-color: var(--color-bg-base);
   color: var(--color-text-primary);
+  /* Figma-style smooth scrolling */
+  scroll-behavior: smooth;
+  /* Prevent text selection for better UX */
+  user-select: none;
+  /* Custom cursor for better feel */
+  cursor: default;
+}
+
+/* Allow text selection for input areas */
+input, textarea, pre, [contenteditable] {
+  user-select: text;
+  cursor: text;
+}
+
+/* Figma-style button cursor */
+button {
+  cursor: pointer;
 }
 
 /* Smooth scrolling */
@@ -106,50 +144,151 @@ body {
    End of SVG 图标尺寸控制
    ================================================= */
 
-/* Modern button base styles */
+/* 极简克制按钮样式 */
 .modern-btn {
-  transition: all var(--transition-base);
-  border-radius: var(--radius-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 16px;
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: -0.01em;
-}
-
-.modern-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.modern-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: var(--shadow-sm);
-}
-
-/* Modern card styles */
-.modern-card {
-  background: var(--color-bg-base);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
   transition: all var(--transition-base);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
 }
 
-.modern-card:hover {
-  box-shadow: var(--shadow-md);
+/* Primary button variant */
+.modern-btn.primary {
+  background: var(--color-primary);
+  color: #F5F5F7;
+  border-color: var(--color-primary);
+}
+
+.modern-btn.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+/* Accent button variant */
+.modern-btn.accent {
+  background: var(--color-accent);
+  color: #F5F5F7;
+  border-color: var(--color-accent);
+}
+
+.modern-btn.accent:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+/* Success button variant */
+.modern-btn.success {
+  background: var(--color-success);
+  color: #F5F5F7;
+  border-color: var(--color-success);
+}
+
+.modern-btn.success:hover:not(:disabled) {
+  background: var(--color-success-hover);
+  border-color: var(--color-success-hover);
+}
+
+/* Error button variant */
+.modern-btn.error {
+  background: var(--color-error);
+  color: #F5F5F7;
+  border-color: var(--color-error);
+}
+
+.modern-btn.error:hover:not(:disabled) {
+  background: var(--color-error-hover);
+  border-color: var(--color-error-hover);
+}
+
+/* 克制的悬停效果 */
+.modern-btn:hover:not(:disabled) {
   border-color: var(--color-border-medium);
 }
 
-/* Modern input styles */
-.modern-input {
-  transition: all var(--transition-base);
-  border-radius: var(--radius-base);
+.modern-btn:active:not(:disabled) {
+  border-color: var(--color-border-strong);
+  transition: all var(--transition-fast);
+}
+
+.modern-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* 极简克制卡片样式 */
+.modern-card {
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-light);
+  transition: all var(--transition-base);
+}
+
+/* Raised card variant */
+.modern-card.raised {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-medium);
+}
+
+/* 克制的悬停效果 */
+.modern-card:hover {
+  border-color: var(--color-border-medium);
+}
+
+/* 极简克制输入框样式 */
+.modern-input {
+  width: 100%;
+  padding: var(--space-sm);
+  font-size: 13px;
+  line-height: 1.4;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-base);
+  transition: all var(--transition-base);
+  color: var(--color-text-primary);
+  font-family: inherit;
 }
 
 .modern-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-border-focus);
+  background: var(--color-bg-elevated);
 }
+
+.modern-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Disabled state */
+.modern-input:disabled {
+  background: var(--color-bg-subtle);
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+/* Error state */
+.modern-input.error {
+  border-color: var(--color-error);
+}
+
+.modern-input.error:focus {
+  border-color: var(--color-error);
+}
+
+/* No gradients or glass effects - Flat design only */
 
 /* Loading spinner animation */
 @keyframes spin {
@@ -193,4 +332,137 @@ body {
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* No shimmer effects - Flat design only */
+
+/* No glow effects - Flat design only */
+
+/* No complex animations - Flat design only */
+
+/* Figma-style Smooth scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  transition: background var(--transition-base);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* Figma-style selection colors */
+::selection {
+  background: rgba(13, 153, 255, 0.3);
+  color: var(--color-text-primary);
+}
+
+/* Figma-style focus rings */
+.modern-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.modern-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* Premium focus states */
+.modern-btn:focus-visible,
+.modern-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Enhanced hover states */
+.modern-card:hover {
+  border-color: var(--color-primary-light);
+}
+
+/* Status indicator animations */
+@keyframes status-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.status-indicator {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+/* Tab indicator */
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-primary);
+  border-radius: 1px;
+  transition: all var(--transition-spring);
+}
+
+/* Flat interactions - No transforms */
+.interactive-element {
+  transition: all var(--transition-fast);
+}
+
+.interactive-element:hover {
+  /* No transform - flat design */
+}
+
+.interactive-element:active {
+  /* No transform - flat design */
+  transition: all var(--transition-instant);
+}
+
+/* Subtle loading state for Figma style */
+@keyframes figma-pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.figma-loading {
+  animation: figma-pulse 1.5s ease-in-out infinite;
+}
+
+/* Enhanced transitions for smooth Figma experience */
+.figma-transition {
+  transition: all var(--transition-base);
+}
+
+.figma-transition-slow {
+  transition: all var(--transition-slow);
+}
+
+/* Focus trap for accessibility */
+.focus-trap {
+  outline: none;
+}
+
+.focus-trap:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

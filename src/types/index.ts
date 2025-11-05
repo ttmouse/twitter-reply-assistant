@@ -410,6 +410,7 @@ export const TWITTER_SELECTORS = {
   REPLY_BUTTON: '[data-testid="reply"]',
   REPLY_TEXTAREA: '[data-testid="tweetTextarea_0"]',
   TWEET_BUTTON: '[data-testid="tweetButtonInline"]',
+  SHOW_MORE_BUTTON: '[data-testid="tweet-text-show-more-link"]',
 } as const;
 
 // ==================== Constants ====================

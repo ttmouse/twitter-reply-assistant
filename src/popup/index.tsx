@@ -6,6 +6,7 @@ import { AIService } from '../services/ai-service';
 import type { AIConfig, AIProvider } from '../types';
 import { PROVIDER_URLS, PROVIDER_NAMES, MODEL_SUGGESTIONS, REPLY_STYLES, ErrorHelper, AppError } from '../types';
 import { CustomStyleManager } from '../components/CustomStyleManager';
+import { Shield, FlaskConical, Zap, Settings, Check, AlertCircle, ChevronDown, Eye, EyeOff, Link2, Database, MessageSquare, Bug, Loader2, TestTube } from 'lucide-react';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'config' | 'status' | 'test' | 'customStyles'>('config');
@@ -197,130 +198,195 @@ function App() {
   };
 
   return (
-    <div className="w-[480px] bg-white shadow-lg">
-      {/* 标题栏 */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-5">
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-            </svg>
+    <div className="w-[440px] h-[600px]" style={{ backgroundColor: 'var(--color-bg-base)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* 极简克制头部 */}
+      <div style={{
+        background: 'var(--color-bg-elevated)',
+        borderBottom: `1px solid var(--color-border-divider)`,
+        padding: '16px 20px',
+        flexShrink: 0
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <div
+            style={{
+              width: '24px',
+              height: '24px',
+              background: 'var(--color-primary)',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >
+            <Shield
+              size={14}
+              style={{ color: '#F8F8FA' }}
+            />
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Twitter Reply Assistant</h1>
-            <p className="text-sm text-blue-50 mt-0.5">AI 智能回复助手</p>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1
+              style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                margin: 0,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              Twitter Reply Assistant
+            </h1>
           </div>
         </div>
       </div>
 
-      {/* 标签切换 - 现代分段控制器 */}
-      <div className="flex gap-1 p-3 bg-gray-50 border-b border-gray-200">
-        <button
-          className={`flex-1 py-2.5 px-3 font-medium text-sm rounded-lg transition-all ${
-            activeTab === 'config'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-          }`}
-          onClick={() => setActiveTab('config')}
-        >
-          <span className="flex items-center justify-center gap-1.5">
-            ⚙️ <span>API 配置</span>
-          </span>
-        </button>
-        <button
-          className={`flex-1 py-2.5 px-3 font-medium text-sm rounded-lg transition-all ${
-            activeTab === 'status'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-          }`}
-          onClick={() => setActiveTab('status')}
-        >
-          <span className="flex items-center justify-center gap-1.5">
-            📊 <span>状态</span>
-          </span>
-        </button>
-        <button
-          className={`flex-1 py-2.5 px-3 font-medium text-sm rounded-lg transition-all ${
-            activeTab === 'customStyles'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-          }`}
-          onClick={() => setActiveTab('customStyles')}
-        >
-          <span className="flex items-center justify-center gap-1.5">
-            🎨 <span>自定义</span>
-          </span>
-        </button>
-        <button
-          className={`flex-1 py-2.5 px-3 font-medium text-sm rounded-lg transition-all ${
-            activeTab === 'test'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-          }`}
-          onClick={() => setActiveTab('test')}
-        >
-          <span className="flex items-center justify-center gap-1.5">
-            🧪 <span>测试</span>
-          </span>
-        </button>
+      {/* 标签导航 */}
+      <div style={{
+        background: 'var(--color-bg-raised)',
+        borderBottom: `1px solid var(--color-border-divider)`,
+        padding: '12px 20px',
+        flexShrink: 0
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+          gap: '4px',
+          background: 'var(--color-bg-subtle)',
+          padding: '2px',
+          borderRadius: 'var(--radius-base)'
+        }}>
+          {[
+            { id: 'config', label: 'API 配置' },
+            { id: 'status', label: '状态' },
+            { id: 'customStyles', label: '自定义' },
+            { id: 'test', label: '测试' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                padding: '8px 4px',
+                fontSize: '11px',
+                fontWeight: 500,
+                borderRadius: 'var(--radius-xs)',
+                background: activeTab === tab.id
+                  ? 'var(--color-primary)'
+                  : 'transparent',
+                color: activeTab === tab.id
+                  ? '#F8F8FA'
+                  : 'var(--color-text-muted)',
+                border: 'none',
+                transition: 'all var(--transition-base)',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 内容区域 */}
-      <div className="p-5 max-h-[500px] overflow-y-auto bg-gray-50/50">
+      <div style={{
+        padding: '24px',
+        background: 'var(--color-bg-base)',
+        flex: 1,
+        overflowY: 'auto',
+        minWidth: 0
+      }}>
         {/* API 配置标签页 */}
         {activeTab === 'config' && (
-          <div className="space-y-4">
-            {/* 配置状态指示器 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* 状态指示器 */}
             {config ? (
-              <div className="modern-card bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 p-4 animate-fade-in">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-green-800 font-semibold text-sm">配置已就绪</p>
-                    <p className="text-green-600 text-xs mt-0.5">
-                      {PROVIDER_NAMES[config.provider]} · {config.model}
-                    </p>
-                  </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 16px',
+                background: 'rgba(95, 207, 128, 0.08)',
+                border: `1px solid rgba(95, 207, 128, 0.15)`,
+                borderRadius: 'var(--radius-base)'
+              }}>
+                <Check size={16} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-success)', margin: '0 0 2px 0' }}>
+                    配置已就绪
+                  </p>
+                  <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0 }}>
+                    {PROVIDER_NAMES[config.provider]} · {config.model}
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className="modern-card bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 p-4 animate-fade-in">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-amber-800 font-semibold text-sm">需要配置</p>
-                    <p className="text-amber-600 text-xs mt-0.5">
-                      请配置 API 以使用智能回复功能
-                    </p>
-                  </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 16px',
+                background: 'rgba(255, 179, 102, 0.08)',
+                border: `1px solid rgba(255, 179, 102, 0.15)`,
+                borderRadius: 'var(--radius-base)'
+              }}>
+                <AlertCircle size={16} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-warning)', margin: '0 0 2px 0' }}>
+                    需要配置 API
+                  </p>
+                  <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0 }}>
+                    请配置 API 以使用智能回复功能
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* 提供商选择 */}
-            <div className="modern-card p-4">
-              <label className="block text-sm font-semibold text-gray-800 mb-3">
-                AI 提供商
-              </label>
-              <div className="grid grid-cols-2 gap-2">
+            {/* AI 提供商 */}
+            <div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px'
+              }}>
+                <FlaskConical size={18} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+                  AI 提供商
+                </h3>
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px'
+              }}>
                 {(['siliconflow', 'deepseek', 'glm', 'custom'] as AIProvider[]).map(
                   (provider) => (
                     <button
                       key={provider}
                       onClick={() => handleProviderChange(provider)}
-                      className={`modern-btn p-3 text-sm font-medium transition-all ${
-                        formData.provider === provider
-                          ? 'border-2 border-blue-500 bg-blue-50 text-blue-700 shadow-md'
-                          : 'border-2 border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                      }`}
+                      style={{
+                        height: '32px',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        borderRadius: 'var(--radius-base)',
+                        border: `1px solid ${formData.provider === provider ? 'var(--color-primary)' : 'var(--color-border-light)'}`,
+                        background: formData.provider === provider
+                          ? 'var(--color-primary)'
+                          : 'var(--color-bg-surface)',
+                        color: formData.provider === provider
+                          ? '#F8F8FA'
+                          : 'var(--color-text-primary)',
+                        transition: 'all var(--transition-base)',
+                        cursor: 'pointer'
+                      }}
                     >
                       {PROVIDER_NAMES[provider]}
                     </button>
@@ -329,12 +395,12 @@ function App() {
               </div>
             </div>
 
-            {/* API Token */}
-            <div className="modern-card p-4">
-              <label className="block text-sm font-semibold text-gray-800 mb-3">
+            {/* 极简 API Token 输入 */}
+            <div>
+              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
                 API Token
-              </label>
-              <div className="relative">
+              </h3>
+              <div style={{ position: 'relative' }}>
                 <input
                   type={showToken ? 'text' : 'password'}
                   value={formData.apiToken}
@@ -342,26 +408,50 @@ function App() {
                     setFormData({ ...formData, apiToken: e.target.value })
                   }
                   placeholder="sk-xxxx..."
-                  className="modern-input w-full px-4 py-2.5 pr-20 text-sm"
+                  style={{
+                    width: '100%',
+                    height: '36px',
+                    padding: '0 40px 0 12px',
+                    fontSize: '13px',
+                    fontFamily: 'monospace',
+                    background: 'var(--color-bg-surface)',
+                    border: `1px solid var(--color-border-light)`,
+                    borderRadius: 'var(--radius-base)',
+                    color: 'var(--color-text-primary)',
+                    transition: 'all var(--transition-base)'
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowToken(!showToken)}
-                  className="absolute top-1/2 -translate-y-1/2 right-2 px-3 py-1 text-xs text-gray-500 hover:text-gray-700 font-medium bg-white rounded shadow-sm"
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: '8px',
+                    transform: 'translateY(-50%)',
+                    padding: '4px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
                 >
-                  {showToken ? '隐藏' : '显示'}
+                  {showToken ? (
+                    <EyeOff size={14} style={{ color: 'var(--color-text-muted)' }} />
+                  ) : (
+                    <Eye size={14} style={{ color: 'var(--color-text-muted)' }} />
+                  )}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
                 从 {PROVIDER_NAMES[formData.provider]} 获取您的 API Token
               </p>
             </div>
 
-            {/* 模型名称 */}
-            <div className="modern-card p-4">
-              <label className="block text-sm font-semibold text-gray-800 mb-3">
+            {/* 极简模型选择 */}
+            <div>
+              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
                 模型名称
-              </label>
+              </h3>
               <input
                 list="model-suggestions"
                 value={formData.model}
@@ -369,7 +459,17 @@ function App() {
                   setFormData({ ...formData, model: e.target.value })
                 }
                 placeholder="输入或选择模型"
-                className="modern-input w-full px-4 py-2.5 text-sm"
+                style={{
+                  width: '100%',
+                  height: '36px',
+                  padding: '0 12px',
+                  fontSize: '13px',
+                  background: 'var(--color-bg-surface)',
+                  border: `1px solid var(--color-border-light)`,
+                  borderRadius: 'var(--radius-base)',
+                  color: 'var(--color-text-primary)',
+                  transition: 'all var(--transition-base)'
+                }}
               />
               <datalist id="model-suggestions">
                 {formData.provider !== 'custom' &&
@@ -377,19 +477,27 @@ function App() {
                     <option key={model} value={model} />
                   ))}
               </datalist>
-              {formData.provider !== 'custom' && (
-                <p className="text-xs text-gray-500 mt-2">
-                  建议: {MODEL_SUGGESTIONS[formData.provider].join(', ')}
-                </p>
-              )}
             </div>
 
-            {/* 自定义 URL（仅自定义提供商） */}
+            {/* 自定义 URL */}
             {formData.provider === 'custom' && (
-              <div className="modern-card p-4 animate-fade-in">
-                <label className="block text-sm font-semibold text-gray-800 mb-3">
-                  API URL
-                </label>
+              <div style={{
+                padding: '12px',
+                background: 'rgba(107, 127, 255, 0.05)',
+                border: `1px solid rgba(107, 127, 255, 0.2)`,
+                borderRadius: 'var(--radius-base)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px'
+                }}>
+                  <Link2 size={16} style={{ color: 'var(--color-primary)' }} />
+                  <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+                    API URL
+                  </h3>
+                </div>
                 <input
                   type="url"
                   value={formData.apiUrl}
@@ -397,65 +505,115 @@ function App() {
                     setFormData({ ...formData, apiUrl: e.target.value })
                   }
                   placeholder="https://api.example.com/v1/chat/completions"
-                  className="modern-input w-full px-4 py-2.5 text-sm"
+                  style={{
+                    width: '100%',
+                    height: '36px',
+                    padding: '0 12px',
+                    fontSize: '13px',
+                    background: 'var(--color-bg-surface)',
+                    border: `1px solid var(--color-primary)`,
+                    borderRadius: 'var(--radius-base)',
+                    color: 'var(--color-text-primary)',
+                    transition: 'all var(--transition-base)',
+                    marginBottom: '8px'
+                  }}
                 />
-                <p className="text-xs text-gray-500 mt-2">
-                  需要兼容 OpenAI Chat Completions API
+                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}>
+                  <AlertCircle size={12} />
+                  需要兼容 OpenAI Chat Completions API 格式
                 </p>
               </div>
             )}
 
             {/* 操作按钮 */}
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={testAPI}
-                disabled={isLoading || isSaving}
-                className="modern-btn flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {isLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                    </svg>
-                    <span>测试中...</span>
-                  </span>
-                ) : (
-                  '🔌 测试连接'
-                )}
-              </button>
-              <button
-                onClick={saveConfig}
-                disabled={isLoading || isSaving}
-                className="modern-btn flex-1 py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {isSaving ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                    </svg>
-                    <span>保存中...</span>
-                  </span>
-                ) : (
-                  '💾 保存配置'
-                )}
-              </button>
-            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px'
+              }}>
+                <button
+                  onClick={testAPI}
+                  disabled={isLoading || isSaving}
+                  style={{
+                    height: '36px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    borderRadius: 'var(--radius-base)',
+                    border: '1px solid var(--color-accent)',
+                    background: 'var(--color-accent)',
+                    color: '#F8F8FA',
+                    cursor: isLoading || isSaving ? 'not-allowed' : 'pointer',
+                    opacity: isLoading || isSaving ? 0.6 : 1,
+                    transition: 'all var(--transition-base)'
+                  }}
+                >
+                  {isLoading ? '测试中...' : '测试连接'}
+                </button>
+                <button
+                  onClick={saveConfig}
+                  disabled={isLoading || isSaving}
+                  style={{
+                    height: '36px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    borderRadius: 'var(--radius-base)',
+                    border: '1px solid var(--color-primary)',
+                    background: 'var(--color-primary)',
+                    color: '#F8F8FA',
+                    cursor: isLoading || isSaving ? 'not-allowed' : 'pointer',
+                    opacity: isLoading || isSaving ? 0.6 : 1,
+                    transition: 'all var(--transition-base)'
+                  }}
+                >
+                  {isSaving ? '保存中...' : '保存配置'}
+                </button>
+              </div>
 
-            {config && (
-              <button
-                onClick={clearConfig}
-                className="modern-btn w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-500 text-white font-medium"
-              >
-                🗑️ 清除配置
-              </button>
-            )}
+              {config && (
+                <button
+                  onClick={clearConfig}
+                  style={{
+                    width: '100%',
+                    height: '36px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    borderRadius: 'var(--radius-base)',
+                    border: '1px solid var(--color-error)',
+                    background: 'var(--color-error)',
+                    color: '#F8F8FA',
+                    cursor: 'pointer',
+                    transition: 'all var(--transition-base)'
+                  }}
+                >
+                  清除配置
+                </button>
+              )}
+            </div>
 
             {/* 测试结果 */}
             {testResult && (
-              <div className="modern-card p-4 bg-gray-50 animate-fade-in">
-                <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">
+              <div style={{
+                padding: '12px',
+                background: 'var(--color-bg-elevated)',
+                borderRadius: 'var(--radius-base)',
+                border: `1px solid var(--color-border-light)`
+              }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                  测试结果
+                </h3>
+                <pre style={{
+                  fontSize: '11px',
+                  color: 'var(--color-text-secondary)',
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'monospace',
+                  lineHeight: 1.4,
+                  margin: 0,
+                  padding: '8px',
+                  backgroundColor: 'var(--color-bg-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: `1px solid var(--color-border-light)`
+                }}>
                   {testResult}
                 </pre>
               </div>
@@ -465,134 +623,134 @@ function App() {
 
         {/* 状态标签页 */}
         {activeTab === 'status' && (
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* 配置状态 */}
-            <div className="modern-card p-4">
-              <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <svg
-                  className="text-blue-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  width={16}
-                  height={16}
-                  style={{ minWidth: 16, minHeight: 16 }}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span>当前配置</span>
-              </h3>
+            <div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '12px'
+              }}>
+                <Settings size={16} style={{ color: 'var(--color-primary)' }} />
+                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+                  当前配置
+                </h3>
+              </div>
               {config ? (
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600">提供商</span>
-                    <span className="font-medium text-gray-900">{PROVIDER_NAMES[config.provider]}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600">API URL</span>
-                    <span className="font-mono text-xs text-gray-900 truncate max-w-[300px]">
-                      {config.apiUrl}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600">API Token</span>
-                    <span className="font-mono text-xs text-gray-900">
-                      {config.apiToken.slice(0, 10)}...
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-600">模型</span>
-                    <span className="font-medium text-gray-900">{config.model}</span>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm text-center py-4">暂无配置</p>
-              )}
-            </div>
-
-            {/* 存储信息 */}
-            <div className="modern-card p-4">
-              <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <svg
-                  className="text-blue-600"
-                  width={16}
-                  height={16}
-                  style={{ minWidth: 16, minHeight: 16 }}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                </svg>
-                <span>存储使用</span>
-              </h3>
-              {storageInfo ? (
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">已使用</span>
-                    <span className="font-medium text-gray-900">
-                      {storageInfo.bytesInUse} 字节
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">配额</span>
-                    <span className="font-medium text-gray-900">{storageInfo.quota} 字节</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">使用率</span>
-                    <span className="font-medium text-gray-900">
-                      {storageInfo.percentUsed}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
-                    <div
-                      className="bg-gradient-to-r from-blue-600 to-blue-500 h-2.5 rounded-full transition-all"
-                      style={{ width: `${storageInfo.percentUsed}%` }}
-                    ></div>
+                <div style={{
+                  padding: '16px',
+                  background: 'var(--color-bg-elevated)',
+                  borderRadius: 'var(--radius-base)',
+                  border: `1px solid var(--color-border-light)`
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {[
+                      { label: '提供商', value: PROVIDER_NAMES[config.provider] },
+                      { label: '模型', value: config.model },
+                      { label: 'API URL', value: config.apiUrl, truncate: true, mono: true },
+                      { label: 'API Token', value: `${config.apiToken.slice(0, 10)}...`, mono: true }
+                    ].map((item, index) => (
+                      <div key={index} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '12px',
+                        minWidth: 0
+                      }}>
+                        <span style={{
+                          fontSize: '12px',
+                          color: 'var(--color-text-secondary)',
+                          flexShrink: 0
+                        }}>
+                          {item.label}
+                        </span>
+                        <span style={{
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          color: 'var(--color-text-primary)',
+                          fontFamily: item.mono ? 'monospace' : 'inherit',
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          textAlign: 'right'
+                        }}>
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-500 text-sm text-center py-4">加载中...</p>
+                <div style={{
+                  padding: '24px',
+                  textAlign: 'center',
+                  background: 'var(--color-bg-elevated)',
+                  borderRadius: 'var(--radius-base)',
+                  border: `1px solid var(--color-border-light)`
+                }}>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: 0 }}>
+                    暂无配置
+                  </p>
+                </div>
               )}
             </div>
 
             {/* 回复风格列表 */}
-            <div className="modern-card p-4">
-              <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <svg
-                  className="text-blue-600"
-                  width={16}
-                  height={16}
-                  style={{ minWidth: 16, minHeight: 16 }}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                  />
-                </svg>
-                <span>可用回复风格</span>
-              </h3>
-              <div className="space-y-2">
-                {REPLY_STYLES.map((style) => (
-                  <div
-                    key={style.id}
-                    className="flex items-start gap-3 text-sm p-3 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-100 hover:border-gray-200 transition-all"
-                  >
-                    <span className="text-2xl">{style.icon}</span>
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-900">{style.name}</div>
-                      <div className="text-xs text-gray-600 mt-0.5">
-                        {style.description}
+            <div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '12px'
+              }}>
+                <MessageSquare size={16} style={{ color: 'var(--color-primary)' }} />
+                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+                  可用回复风格
+                </h3>
+              </div>
+              <div style={{
+                padding: '16px',
+                background: 'var(--color-bg-elevated)',
+                borderRadius: 'var(--radius-base)',
+                border: `1px solid var(--color-border-light)`
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {REPLY_STYLES.map((style) => (
+                    <div key={style.id} style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      minWidth: 0
+                    }}>
+                      <span style={{ fontSize: '14px', flexShrink: 0 }}>{style.icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          color: 'var(--color-text-primary)',
+                          marginBottom: '2px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {style.name}
+                        </div>
+                        <div style={{
+                          fontSize: '11px',
+                          color: 'var(--color-text-tertiary)',
+                          lineHeight: 1.3,
+                          wordWrap: 'break-word',
+                          overflowWrap: 'break-word'
+                        }}>
+                          {style.description}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -605,17 +763,46 @@ function App() {
 
         {/* 测试标签页 */}
         {activeTab === 'test' && (
-          <div className="space-y-4">
-            <div className="modern-card bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                  </svg>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="modern-card" style={{
+            background: 'var(--color-bg-elevated)',
+            border: `1px solid var(--color-primary)`,
+            padding: '12px'
+          }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: 'var(--radius-base)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  background: 'var(--color-primary)',
+                  opacity: 0.15
+                }}>
+                  <TestTube
+                    size={16}
+                    style={{ color: 'var(--color-primary)' }}
+                  />
                 </div>
-                <div className="flex-1">
-                  <p className="text-blue-800 font-semibold text-sm">开发测试工具</p>
-                  <p className="text-blue-600 text-xs mt-0.5">
+                <div style={{ flex: 1 }}>
+                  <p style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'var(--color-text-primary)',
+                    marginBottom: '4px',
+                    marginTop: '0'
+                  }}>开发测试工具</p>
+                  <p style={{
+                    fontSize: '11px',
+                    color: 'var(--color-text-secondary)',
+                    margin: 0
+                  }}>
                     用于开发调试，正常使用不需要此功能
                   </p>
                 </div>
@@ -625,56 +812,59 @@ function App() {
             <button
               onClick={testAIGeneration}
               disabled={isLoading || !config}
-              className="modern-btn w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="modern-btn accent w-full"
+              style={{ padding: '12px 16px' }}
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                  </svg>
+                  <Loader2 size={14} className="animate-spin" style={{ color: 'currentColor' }} />
                   <span>测试中...</span>
                 </span>
               ) : (
-                '🤖 测试生成回复'
+                <span className="flex items-center justify-center gap-2">
+                  <TestTube size={14} />
+                  <span>测试生成回复</span>
+                </span>
               )}
             </button>
 
             {!config && (
-              <div className="modern-card bg-amber-50 border-amber-200 p-3">
-                <p className="text-xs text-amber-700 flex items-center gap-2">
-                  <svg
-                    className="text-amber-700"
-                    width={16}
-                    height={16}
-                    style={{ minWidth: 16, minHeight: 16 }}
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
+              <div className="modern-card" style={{
+                background: 'var(--color-warning)',
+                border: `1px solid var(--color-warning)`,
+                padding: '12px'
+              }}>
+                <p className="text-xs flex items-center gap-2" style={{ color: '#F5F5F7' }}>
+                  <AlertCircle
+                    size={14}
+                    style={{ color: '#F5F5F7', minWidth: 14, minHeight: 14 }}
+                  />
                   <span>需要先在"API 配置"中保存配置</span>
                 </p>
               </div>
             )}
 
             {testResult && (
-              <div className="modern-card p-4 bg-gray-50 animate-fade-in">
-                <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <svg
-                    className="text-blue-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    width={16}
-                    height={16}
-                    style={{ minWidth: 16, minHeight: 16 }}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+              <div className="modern-card" style={{ padding: '12px' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }} className="flex items-center gap-2">
+                  <Bug
+                    size={16}
+                    style={{ color: 'var(--color-primary)', minWidth: 16, minHeight: 16 }}
+                  />
                   <span>测试结果</span>
                 </h3>
-                <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">
+                <pre style={{
+                fontSize: '11px',
+                color: 'var(--color-text-secondary)',
+                whiteSpace: 'pre-wrap',
+                fontFamily: 'monospace',
+                lineHeight: 1.4,
+                margin: 0,
+                padding: '8px',
+                backgroundColor: 'var(--color-bg-subtle)',
+                borderRadius: 'var(--radius-base)',
+                border: `1px solid var(--color-border-light)`
+              }}>
                   {testResult}
                 </pre>
               </div>
@@ -683,28 +873,7 @@ function App() {
         )}
       </div>
 
-      {/* 底部提示 */}
-      <div className="border-t bg-gradient-to-br from-gray-50 to-gray-100/50 p-4">
-        <div className="flex items-center gap-2 text-xs text-gray-600">
-          <svg
-            className="text-blue-500"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            width={16}
-            height={16}
-            style={{ minWidth: 16, minHeight: 16 }}
-          >
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          <p className="flex-1">
-            {config ? (
-              <span className="font-medium">配置已就绪，可以在 Twitter 上使用了</span>
-            ) : (
-              <span>请先配置 API 以使用智能回复功能</span>
-            )}
-          </p>
-        </div>
-      </div>
+      {/* 无底部状态栏，避免重叠 */}
     </div>
   );
 }

@@ -105,7 +105,7 @@ export class TwitterInjector {
   /**
    * 在回复框工具栏中注入 AI 按钮
    */
-  private injectToolbarButton(): void {
+  private async injectToolbarButton(): Promise<void> {
     // 查找回复弹窗
     const dialog = TwitterDOM.findReplyDialog();
     if (!dialog) {
@@ -134,14 +134,20 @@ export class TwitterInjector {
       return;
     }
 
-    // 获取推文文本
-    const tweetText = TwitterDOM.getTweetTextFromReplyDialog(dialog);
+    // 获取推文文本（异步处理）
+    let tweetText: string | null = null;
+    try {
+      tweetText = await TwitterDOM.getTweetTextFromReplyDialog(dialog);
+    } catch (error) {
+      console.warn('[Twitter Injector] 获取推文文本时出错:', error);
+    }
+
     if (!tweetText) {
       console.warn('[Twitter Injector] 无法提取原推文文本');
       // 即使没有推文文本也继续，允许用户手动输入
     }
 
-    console.log('[Twitter Injector] 原推文文本:', tweetText || '(未找到)');
+    console.log('[Twitter Injector] 原推文文本:', tweetText?.substring(0, 100) + (tweetText && tweetText.length > 100 ? '...' : ' (未找到)'));
 
     // 等待一小段时间让工具栏渲染
     setTimeout(() => {
@@ -283,7 +289,7 @@ export class TwitterInjector {
   /**
    * 重新注入所有回复框（用于调试）
    */
-  reinjectAll(): void {
+  async reinjectAll(): Promise<void> {
     console.log('[Twitter Injector] 重新注入回复框...');
     this.processedDialogs.clear();
 
@@ -292,7 +298,7 @@ export class TwitterInjector {
     existingButtons.forEach((button) => button.remove());
 
     // 重新注入
-    this.injectToolbarButton();
+    await this.injectToolbarButton();
   }
 }
 
