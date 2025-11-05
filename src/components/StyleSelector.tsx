@@ -1,10 +1,12 @@
 /**
  * 风格选择器组件
  *
- * 显示预设风格和自定义风格的下拉菜单
+ * 使用 Twitter 原生菜单样式显示回复风格
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Bot, Brain, Sparkles, MessageCircle } from 'lucide-react';
 import type { ReplyStyle } from '../types';
 import { REPLY_STYLES } from '../types';
 import { StorageService } from '../services/storage-service';
@@ -18,6 +20,8 @@ interface StyleSelectorProps {
   onClose: () => void;
   /** 是否正在加载 */
   isLoading?: boolean;
+  /** 按钮位置信息 */
+  buttonRect?: DOMRect;
 }
 
 export function StyleSelector({
@@ -25,6 +29,7 @@ export function StyleSelector({
   isOpen,
   onClose,
   isLoading = false,
+  buttonRect,
 }: StyleSelectorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [allStyles, setAllStyles] = useState<ReplyStyle[]>(REPLY_STYLES);
@@ -91,389 +96,131 @@ export function StyleSelector({
     onSelectStyle(styleId);
   };
 
+  // 计算菜单位置
+  const getMenuPosition = () => {
+    if (!buttonRect) {
+      return {
+        top: '0px',
+        left: '40px',
+      };
+    }
+
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    // 菜单显示在按钮右侧，确保不被视口边缘裁剪
+    const menuWidth = 230;
+    const menuHeight = 400;
+
+    let left = buttonRect.right + 4; // 按钮右边 + 4px间距
+    let top = buttonRect.top;
+
+    // 如果右侧空间不足，显示在左侧
+    if (left + menuWidth > window.innerWidth + scrollLeft) {
+      left = buttonRect.left - menuWidth - 4;
+    }
+
+    // 如果下方空间不足，向上调整
+    if (top + menuHeight > window.innerHeight + scrollTop) {
+      top = window.innerHeight + scrollTop - menuHeight - 20;
+    }
+
+    return {
+      top: `${top}px`,
+      left: `${left}px`,
+    };
+  };
+
   // 分离预设风格和自定义风格
   const presetStyles = allStyles.filter(s => REPLY_STYLES.some(preset => preset.id === s.id));
   const customStyles = allStyles.filter(s => !REPLY_STYLES.some(preset => preset.id === s.id));
 
-  return (
+  // Twitter 风格映射到 Lucide 图标
+  const getStyleIcon = (style: ReplyStyle) => {
+    switch (style.id) {
+      case 'professional':
+        return <Brain size={16} />;
+      case 'humorous':
+        return <Sparkles size={16} />;
+      case 'concise':
+        return <MessageCircle size={16} />;
+      case 'supportive':
+        return <Bot size={16} />;
+      case 'critical':
+        return <Brain size={16} />;
+      case 'questioning':
+        return <MessageCircle size={16} />;
+      default:
+        return <Bot size={16} />;
+    }
+  };
+
+  const menuPosition = getMenuPosition();
+
+  return createPortal(
     <div
+      role="menu"
+      className="css-175oi2r r-j2cz3j r-kemksi r-1q9bdsx r-qo02w8 r-1udh08x r-1rnoaur r-1r851ge r-1xcajam twitter-ai-style-selector"
       ref={containerRef}
-      className="twitter-ai-style-selector"
       style={{
-        position: 'absolute',
-        top: '0',
-        left: '40px', // 按钮宽度 36px + 4px 间距
-        zIndex: 999999,
-        backgroundColor: 'white',
+        position: 'fixed',
+        top: menuPosition.top,
+        left: menuPosition.left,
+        zIndex: 2147483647,
+        backgroundColor: 'rgba(32, 35, 39, 1)',
+        backdropFilter: 'blur(12px)',
         borderRadius: '16px',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08)',
-        border: '1px solid rgba(0, 0, 0, 0.06)',
-        padding: '12px',
-        minWidth: '320px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)',
+        border: '1px solid rgba(47, 51, 54, 1)',
+        minWidth: '230px',
+        maxHeight: 'calc(-48px + 100vh)',
+        overflowY: 'auto',
         animation: 'fadeInScale 0.15s ease-out',
       }}
     >
-      {/* 标题 */}
-      <div
-        style={{
-          padding: '12px 16px',
-          borderBottom: '2px solid #f0f4f8',
-          marginBottom: '8px',
-          background: 'linear-gradient(to bottom, #fafbfc, #ffffff)',
-          borderRadius: '8px 8px 0 0',
-          marginLeft: '-12px',
-          marginRight: '-12px',
-          marginTop: '-12px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <svg
-            className="w-4 h-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-          </svg>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: '16px',
-              fontWeight: 700,
-              color: '#1e293b',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            选择回复风格
-          </h3>
-        </div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '13px',
-            color: '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}
-        >
-          {isLoading ? (
-            <>
-              <span style={{
-                display: 'inline-block',
-                width: '14px',
-                height: '14px',
-                border: '2px solid #e2e8f0',
-                borderTopColor: '#3b82f6',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}></span>
-              <span>正在生成回复...</span>
-            </>
-          ) : (
-            <>🤖 AI 将以选定风格生成回复</>
-          )}
-        </p>
-      </div>
-
-      {/* 风格列表 */}
-      <div style={{ maxHeight: '420px', overflowY: 'auto', padding: '4px' }}>
-        {/* 自定义风格 */}
-        {customStyles.length > 0 && (
-          <>
+      <div className="css-175oi2r">
+        <div className="css-175oi2r" data-testid="Dropdown">
+          {/* 所有风格选项 */}
+          {[...customStyles, ...presetStyles].map((style) => (
             <div
+              key={style.id}
+              role="menuitem"
+              tabIndex={0}
+              className={`css-175oi2r r-1loqt21 r-18u37iz r-1mmae3n r-3pj75a r-13qz1uu r-o7ynqc r-6416eg r-1ny4l3l twitter-ai-menu-item ${isLoading ? 'r-icoktb' : ''}`}
+              onClick={() => !isLoading && handleStyleClick(style.id)}
               style={{
-                padding: '8px 12px 6px',
-                marginBottom: '6px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.15s ease',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <svg
-                  className="w-3.5 h-3.5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#8b5cf6"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 1v6m0 6v6m-6-6h6m6 0h6" />
-                </svg>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    color: '#8b5cf6',
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  自定义风格 ({customStyles.length})
-                </p>
-              </div>
-            </div>
-            {customStyles.map((style) => (
-              <button
-                key={style.id}
-                onClick={() => handleStyleClick(style.id)}
-                disabled={isLoading}
-                className="twitter-ai-style-option"
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  width: '100%',
-                  padding: '14px',
-                  border: '1px solid transparent',
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.15s ease',
-                  textAlign: 'left',
-                  opacity: isLoading ? 0.5 : 1,
-                  marginBottom: '6px',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isLoading) {
-                    e.currentTarget.style.backgroundColor = '#f8fafc';
-                    e.currentTarget.style.borderColor = '#e0e7ff';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.1)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                  e.currentTarget.style.borderColor = 'transparent';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                {/* 图标 */}
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '20px',
-                    marginRight: '12px',
-                    flexShrink: 0,
-                    border: '1px solid rgba(139, 92, 246, 0.15)',
-                  }}
-                >
-                  {style.icon}
-                </div>
-
-                {/* 内容 */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: '15px',
-                      fontWeight: 600,
-                      color: '#1e293b',
-                      marginBottom: '4px',
-                      letterSpacing: '-0.01em',
-                    }}
-                  >
-                    {style.name}
+              <div className="css-175oi2r r-1777fci r-faml9v">
+                {style.icon ? (
+                  <div className="r-4qtqp9 r-yyyyoo r-1xvli5t r-dnmrzs r-bnwqim r-lrvibr r-m6rgpd r-1nao33i r-1q142lx">
+                    {style.icon}
                   </div>
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      color: '#64748b',
-                      lineHeight: '18px',
-                    }}
-                  >
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="r-4qtqp9 r-yyyyoo r-1xvli5t r-dnmrzs r-bnwqim r-lrvibr r-m6rgpd r-1nao33i r-1q142lx">
+                    <g>
+                      <path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </g>
+                  </svg>
+                )}
+              </div>
+              <div className="css-175oi2r r-16y2uox r-1wbh5a2">
+                <div dir="ltr" className="css-146c3p1 r-bcqeeo r-1ttztb7 r-qvutc0 r-37j5jr r-a023e6 r-rjixqe r-b88u0q">
+                  <span className="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">{style.name}</span>
+                </div>
+                {style.description && (
+                  <div dir="ltr" className="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3" style={{ fontSize: '13px', opacity: 0.7 }}>
                     {style.description}
                   </div>
-                </div>
-              </button>
-            ))}
-          </>
-        )}
-
-        {/* 预设风格分隔线（如果有自定义风格） */}
-        {customStyles.length > 0 && presetStyles.length > 0 && (
-          <div
-            style={{
-              padding: '12px 0 8px',
-              marginTop: '8px',
-            }}
-          >
-            <div style={{
-              height: '1px',
-              background: 'linear-gradient(to right, transparent, #e2e8f0, transparent)',
-            }} />
-          </div>
-        )}
-
-        {/* 预设风格标题（如果有自定义风格） */}
-        {customStyles.length > 0 && presetStyles.length > 0 && (
-          <div
-            style={{
-              padding: '8px 12px 6px',
-              marginBottom: '6px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <svg
-                className="w-3.5 h-3.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2l2 7h7l-5.5 4.5 2 7L12 16l-5.5 4.5 2-7L3 9h7z" />
-              </svg>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: '#3b82f6',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                预设风格
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* 预设风格 */}
-        {presetStyles.map((style) => (
-          <button
-            key={style.id}
-            onClick={() => handleStyleClick(style.id)}
-            disabled={isLoading}
-            className="twitter-ai-style-option"
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              width: '100%',
-              padding: '14px',
-              border: '1px solid transparent',
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s ease',
-              textAlign: 'left',
-              opacity: isLoading ? 0.5 : 1,
-              marginBottom: '6px',
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.backgroundColor = '#f0f9ff';
-                e.currentTarget.style.borderColor = '#bfdbfe';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
-              e.currentTarget.style.borderColor = 'transparent';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            {/* 图标 */}
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px',
-                marginRight: '12px',
-                flexShrink: 0,
-                border: '1px solid rgba(59, 130, 246, 0.15)',
-              }}
-            >
-              {style.icon}
-            </div>
-
-            {/* 内容 */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  color: '#1e293b',
-                  marginBottom: '4px',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {style.name}
-              </div>
-              <div
-                style={{
-                  fontSize: '13px',
-                  color: '#64748b',
-                  lineHeight: '18px',
-                }}
-              >
-                {style.description}
+                )}
               </div>
             </div>
-          </button>
-        ))}
-      </div>
-
-      {/* 底部提示 */}
-      <div
-        style={{
-          padding: '12px 16px',
-          borderTop: '2px solid #f0f4f8',
-          marginTop: '8px',
-          background: 'linear-gradient(to top, #fafbfc, #ffffff)',
-          borderRadius: '0 0 8px 8px',
-          marginLeft: '-12px',
-          marginRight: '-12px',
-          marginBottom: '-12px',
-        }}
-      >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px',
-        }}>
-          <svg
-            className="w-3.5 h-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#94a3b8"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-            <path d="M12 17h.01" />
-          </svg>
-          <p
-            style={{
-              margin: 0,
-              fontSize: '12px',
-              color: '#64748b',
-              fontWeight: 500,
-            }}
-          >
-            由 AI 驱动 · 最多生成 280 字符
-          </p>
+          ))}
         </div>
       </div>
-    </div>
+        </div>,
+    document.body
   );
 }

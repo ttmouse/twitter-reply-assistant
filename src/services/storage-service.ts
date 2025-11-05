@@ -98,7 +98,7 @@ export class StorageService {
    */
   static async clearAIConfig(): Promise<void> {
     try {
-      await chrome.storage.sync.remove(StorageKey.AI_CONFIG);
+      await chrome.storage.sync.remove(StorageKey.AI_CONFIG as string);
       console.log('AI config cleared');
     } catch (error) {
       console.error('Failed to clear AI config:', error);
@@ -243,11 +243,29 @@ export class StorageService {
   // ==================== Custom Styles Management ====================
 
   /**
+   * Check if chrome extension context is valid
+   * @returns boolean
+   */
+  private static isExtensionContextValid(): boolean {
+    try {
+      return !!(chrome && chrome.storage && chrome.runtime && chrome.runtime.id);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Get all custom styles from storage
    * @returns Promise<CustomReplyStyle[]> - Array of custom styles
    */
   static async getCustomStyles(): Promise<CustomReplyStyle[]> {
     try {
+      // Check extension context first
+      if (!this.isExtensionContextValid()) {
+        console.warn('Extension context invalidated, returning empty custom styles');
+        return [];
+      }
+
       const result = await chrome.storage.sync.get(StorageKey.CUSTOM_STYLES);
       const styles = result[StorageKey.CUSTOM_STYLES];
 
@@ -263,6 +281,12 @@ export class StorageService {
       // Sort by creation date (newest first)
       return validStyles.sort((a, b) => b.createdAt - a.createdAt);
     } catch (error) {
+      // Check if it's extension context invalidation error
+      if (error instanceof Error && error.message.includes('Extension context invalidated')) {
+        console.warn('Extension context invalidated during getCustomStyles, returning empty array');
+        return [];
+      }
+
       console.error('Failed to get custom styles:', error);
       throw new AppError(
         ErrorType.STORAGE_ERROR,

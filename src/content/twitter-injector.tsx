@@ -173,13 +173,48 @@ export class TwitterInjector {
       Object.assign(aiButtonContainer.style, {
         display: 'inline-flex',
         alignItems: 'center',
-        marginRight: '8px',
       });
 
       if (toolbar) {
-        // 标准注入：插入到工具栏开头
+        // 标准注入：查找滚动列表并插入到开头
         console.log('[Twitter Injector] 找到工具栏，开始注入 AI 按钮');
-        toolbar.insertBefore(aiButtonContainer, toolbar.firstChild);
+
+        // 查找 ScrollSnap-List 容器（Twitter 的工具栏按钮列表）
+        const scrollSnapList = toolbar.querySelector('[data-testid="ScrollSnap-List"]');
+        if (scrollSnapList) {
+          // 创建新的 presentation 包装器
+          const presentationWrapper = document.createElement('div');
+          presentationWrapper.setAttribute('role', 'presentation');
+          presentationWrapper.setAttribute('class', 'css-175oi2r r-14tvyh0 r-cpa5s6');
+          presentationWrapper.appendChild(aiButtonContainer);
+
+          // 查找最后一个有效按钮（表情符号按钮通常是最后一个）
+          const allPresentations = scrollSnapList.querySelectorAll('[role="presentation"]');
+          let lastValidPresentation: Element | null = null;
+
+          for (let i = allPresentations.length - 1; i >= 0; i--) {
+            const presentation = allPresentations[i];
+            const button = presentation.querySelector('button[aria-label*="emoji"], button[aria-label*="表情"]');
+            if (button || presentation.querySelector('button')) {
+              lastValidPresentation = presentation;
+              break;
+            }
+          }
+
+          if (lastValidPresentation) {
+            // 插入到最后一个按钮之后
+            scrollSnapList.insertBefore(presentationWrapper, lastValidPresentation.nextSibling);
+            console.log('[Twitter Injector] ✅ AI 按钮已注入到工具栏最后位置');
+          } else {
+            // 如果没找到合适的插入位置，直接添加到末尾
+            scrollSnapList.appendChild(presentationWrapper);
+            console.log('[Twitter Injector] ✅ AI 按钮已添加到工具栏列表末尾（备用方案）');
+          }
+        } else {
+          // 备用方案：插入到工具栏开头
+          toolbar.insertBefore(aiButtonContainer, toolbar.firstChild);
+          console.log('[Twitter Injector] ✅ AI 按钮已注入到工具栏开头（备用方案）');
+        }
       } else {
         // 备用方案：在回复框附近注入
         console.warn('[Twitter Injector] 未找到工具栏，尝试备用注入方案');

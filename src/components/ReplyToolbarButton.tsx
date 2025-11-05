@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef } from 'react';
+import { Bot, Loader2 } from 'lucide-react';
 import { StyleSelector } from './StyleSelector';
 import { AIService } from '../services/ai-service';
 import { TwitterDOM } from '../utils/twitter-dom';
@@ -23,10 +24,18 @@ export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonPr
   const [isLoading, setIsLoading] = useState(false);
   const [lastError, setLastError] = useState<AppError | null>(null);
   const [lastStyleId, setLastStyleId] = useState<string | null>(null);
+  const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleButtonClick = () => {
     if (isLoading) return;
+
+    // 获取按钮位置信息
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setButtonRect(rect);
+    }
+
     setIsOpen(!isOpen);
   };
 
@@ -222,21 +231,22 @@ export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonPr
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '36px',
-          height: '36px',
+          width: '34.75px',
+          height: '34.75px',
           borderRadius: '50%',
           border: 'none',
-          backgroundColor: isOpen ? '#e8f5fd' : 'transparent',
-          color: isOpen ? '#1d9bf0' : '#536471',
+          backgroundColor: isOpen ? 'rgba(29, 155, 240, 0.1)' : 'transparent',
+          color: isOpen ? '#1d9bf0' : '#1d9bf0',
           cursor: isLoading ? 'not-allowed' : 'pointer',
-          transition: 'background-color 0.2s',
-          fontSize: '18px',
+          transition: 'background-color 0.2s, color 0.2s',
+          fontSize: '17.5px',
           padding: 0,
-          opacity: isLoading ? 0.5 : 1,
+          opacity: isLoading ? 0.38 : 1,
+          position: 'relative',
         }}
         onMouseEnter={(e) => {
           if (!isLoading) {
-            e.currentTarget.style.backgroundColor = '#e8f5fd';
+            e.currentTarget.style.backgroundColor = 'rgba(29, 155, 240, 0.1)';
             e.currentTarget.style.color = '#1d9bf0';
           }
         }}
@@ -247,16 +257,25 @@ export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonPr
           }
         }}
       >
-        {isLoading ? '⏳' : '🤖'}
+        {isLoading ? (
+          <Loader2 size={18.75} style={{
+            animation: 'spin 1s linear infinite',
+          }} />
+        ) : (
+          <Bot size={18.75} />
+        )}
       </button>
 
-      {/* 风格选择器 - 出现在按钮右侧 */}
-      <StyleSelector
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        onSelectStyle={handleSelectStyle}
-        isLoading={isLoading}
-      />
+      {/* 风格选择器 - 使用 Portal 渲染到 body */}
+      {buttonRect && (
+        <StyleSelector
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          onSelectStyle={handleSelectStyle}
+          isLoading={isLoading}
+          buttonRect={buttonRect}
+        />
+      )}
     </div>
   );
 }

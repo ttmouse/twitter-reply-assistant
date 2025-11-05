@@ -16,10 +16,14 @@ export default defineConfig({
       port: 5173,
     },
   },
+  base: './',
   build: {
     rollupOptions: {
       input: {
         popup: 'src/popup/index.html'
+      },
+      output: {
+        manualChunks: undefined // 禁用代码分割
       }
     }
   }

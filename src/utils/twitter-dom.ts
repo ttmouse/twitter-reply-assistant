@@ -72,12 +72,12 @@ export class TwitterDOM {
     try {
       console.log('[TwitterDOM] 开始填充文本，元素类型:', element.tagName);
       console.log('[TwitterDOM] contenteditable:', element.getAttribute('contenteditable'));
+      console.log('[TwitterDOM] 元素是否在文档中:', element.isConnected);
 
-      // 调试：打印元素上的所有属性键
-      const allKeys = Object.keys(element);
-      console.log('[TwitterDOM] 元素上的所有键:', allKeys);
-      const reactKeys = allKeys.filter(k => k.includes('react') || k.includes('React') || k.includes('fiber'));
-      console.log('[TwitterDOM] React 相关的键:', reactKeys);
+      // 检查元素是否仍然存在于文档中
+      if (!element.isConnected) {
+        throw new Error('元素已脱离文档，无法进行操作');
+      }
 
       // 聚焦元素
       element.focus();
@@ -86,17 +86,32 @@ export class TwitterDOM {
       // 等待焦点生效后再操作
       setTimeout(() => {
         try {
+          // 再次检查元素是否仍然存在于文档中
+          if (!element.isConnected) {
+            console.warn('[TwitterDOM] 元素已脱离文档，停止填充操作');
+            return;
+          }
+
+          console.log('[TwitterDOM] setTimeout 开始实际填充操作，元素仍在文档中');
+
           // 新策略：模拟真实的键盘输入
           // 先清空现有内容（如果有）
           const currentText = element.textContent || '';
           if (currentText.length > 0) {
             // 如果有内容，先全选
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(element);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            console.log('[TwitterDOM] 已选中现有内容');
+            try {
+              const selection = window.getSelection();
+              if (selection && element.isConnected) {
+                const range = document.createRange();
+                range.selectNodeContents(element);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                console.log('[TwitterDOM] 已选中现有内容');
+              }
+            } catch (rangeError) {
+              console.warn('[TwitterDOM] 选中内容时出错，跳过此步骤:', rangeError);
+              // 如果创建range失败，继续执行但不选中内容
+            }
           }
 
           // 使用 DataTransfer 模拟粘贴操作
@@ -123,12 +138,19 @@ export class TwitterDOM {
             element.appendChild(textNode);
 
             // 移动光标到末尾
-            const range = document.createRange();
-            const sel = window.getSelection();
-            range.setStart(textNode, text.length);
-            range.collapse(true);
-            sel?.removeAllRanges();
-            sel?.addRange(range);
+            try {
+              const range = document.createRange();
+              const sel = window.getSelection();
+              if (sel && element.isConnected && textNode.isConnected) {
+                range.setStart(textNode, text.length);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+            } catch (rangeError) {
+              console.warn('[TwitterDOM] 设置光标位置时出错，跳过此步骤:', rangeError);
+              // 如果设置光标失败，继续执行
+            }
 
             // 触发 beforeinput 和 input 事件
             element.dispatchEvent(new InputEvent('beforeinput', {
