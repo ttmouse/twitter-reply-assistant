@@ -10,8 +10,6 @@ import type { CustomReplyStyle } from '../types';
 import { MAX_CUSTOM_STYLES, CUSTOM_STYLE_CONSTRAINTS, ErrorHelper } from '../types';
 import { Settings, Plus, Edit3, Trash2, AlertCircle, Check, Loader2, Palette, Clock, MessageSquare, X } from 'lucide-react';
 
-// 常用 emoji 供快速选择
-const COMMON_EMOJIS = ['🎨', '✨', '💡', '🚀', '⚡', '🌟', '💎', '🔥', '🎯', '🎪', '🎭', '🎬'];
 
 // 浮层编辑组件
 interface EditModalProps {
@@ -26,25 +24,25 @@ interface EditModalProps {
 function EditModal({ isOpen, style, onClose, onSave, isLoading, formErrors }: EditModalProps) {
   const [formData, setFormData] = useState({
     name: '',
-    icon: '🎨',
     description: '',
     systemPrompt: '',
+    updatedAt: Date.now(),
   });
 
   useEffect(() => {
     if (style) {
       setFormData({
         name: style.name,
-        icon: style.icon,
         description: style.description,
         systemPrompt: style.systemPrompt,
+        updatedAt: style.updatedAt,
       });
     } else {
       setFormData({
         name: '',
-        icon: '🎨',
         description: '',
         systemPrompt: '',
+        updatedAt: Date.now(),
       });
     }
   }, [style]);
@@ -156,7 +154,7 @@ function EditModal({ isOpen, style, onClose, onSave, isLoading, formErrors }: Ed
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value, updatedAt: Date.now() })}
               placeholder="例如：诗意浪漫"
               maxLength={CUSTOM_STYLE_CONSTRAINTS.NAME_MAX_LENGTH}
               style={{
@@ -182,55 +180,7 @@ function EditModal({ isOpen, style, onClose, onSave, isLoading, formErrors }: Ed
             </div>
           </div>
 
-          {/* 图标选择 */}
-          <div>
-            <label style={{
-              fontSize: '13px',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              marginBottom: '8px',
-              display: 'block'
-            }}>
-              图标 *
-            </label>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(6, 1fr)',
-              gap: '8px',
-              marginBottom: '12px'
-            }}>
-              {COMMON_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, icon: emoji })}
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    fontSize: '20px',
-                    borderRadius: '8px',
-                    border: `2px solid ${
-                      formData.icon === emoji
-                        ? 'var(--color-primary)'
-                        : 'var(--color-border-light)'
-                    }`,
-                    background: formData.icon === emoji
-                      ? 'rgba(107, 127, 255, 0.1)'
-                      : 'var(--color-bg-surface)',
-                    cursor: 'pointer',
-                    transition: 'all var(--transition-base)',
-                    transform: formData.icon === emoji ? 'scale(1.05)' : 'scale(1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-
+          
           {/* 描述/}
           <div>
             <label style={{
@@ -245,7 +195,7 @@ function EditModal({ isOpen, style, onClose, onSave, isLoading, formErrors }: Ed
             <input
               type="text"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value, updatedAt: Date.now() })}
               placeholder="例如：适用于文艺、情感类话题"
               maxLength={CUSTOM_STYLE_CONSTRAINTS.DESCRIPTION_MAX_LENGTH}
               style={{
@@ -284,7 +234,7 @@ function EditModal({ isOpen, style, onClose, onSave, isLoading, formErrors }: Ed
             </label>
             <textarea
               value={formData.systemPrompt}
-              onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value, updatedAt: Date.now() })}
               placeholder="例如：你是一个富有诗意的评论者。请用优美、浪漫的语言回复推文，可以引用诗句或使用比喻..."
               rows={6}
               maxLength={CUSTOM_STYLE_CONSTRAINTS.PROMPT_MAX_LENGTH}
@@ -365,7 +315,7 @@ function EditModal({ isOpen, style, onClose, onSave, isLoading, formErrors }: Ed
             paddingTop: '8px'
           }}>
             <button
-              onClick={() => onSave(formData)}
+              onClick={() => onSave({ ...formData, icon: '🎨' })}
               disabled={isLoading}
               style={{
                 flex: 1,
@@ -443,6 +393,32 @@ export function CustomStyleManager() {
     loadStyles();
   }, []);
 
+  // 当组件重新获得焦点时重新加载（从其他标签切换回来时）
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadStyles();
+      }
+    };
+
+    // 监听页面可见性变化
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 也监听 storage 事件，跨标签页同步
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'customStyles' || e.key === 'customStyle') {
+        loadStyles();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   const loadStyles = async () => {
     try {
       const loadedStyles = await StorageService.getCustomStyles();
@@ -469,8 +445,14 @@ export function CustomStyleManager() {
 
   // 保存（添加或更新）
   const handleSave = async (data: Omit<CustomReplyStyle, 'id' | 'createdAt'>) => {
+    // 确保有图标（添加默认图标如果用户没有自定义）
+    const dataWithIcon = {
+      ...data,
+      icon: data.icon || '🎨' // 默认图标
+    };
+
     // 验证
-    const validation = ConfigValidator.validateCustomStyle(data);
+    const validation = ConfigValidator.validateCustomStyle(dataWithIcon);
     if (!validation.valid) {
       setFormErrors(validation.errors);
       return;
@@ -482,11 +464,11 @@ export function CustomStyleManager() {
     try {
       if (editingStyle) {
         // 更新
-        await StorageService.updateCustomStyle(editingStyle.id, data);
+        await StorageService.updateCustomStyle(editingStyle.id, dataWithIcon);
         setMessage({ type: 'success', text: '✅ 风格已更新' });
       } else {
         // 添加
-        await StorageService.saveCustomStyle(data);
+        await StorageService.saveCustomStyle(dataWithIcon);
         setMessage({ type: 'success', text: '✅ 风格已添加' });
       }
 
@@ -741,17 +723,9 @@ export function CustomStyleManager() {
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '14px',
                     flex: 1,
                     minWidth: 0
                   }}>
-                    <span style={{
-                      fontSize: '20px',
-                      flexShrink: 0,
-                      opacity: 0.8
-                    }}>
-                      {style.icon}
-                    </span>
                     <h3 style={{
                       fontSize: '16px',
                       fontWeight: 600,

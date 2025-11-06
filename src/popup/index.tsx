@@ -6,7 +6,8 @@ import { AIService } from '../services/ai-service';
 import type { AIConfig, AIProvider } from '../types';
 import { PROVIDER_URLS, PROVIDER_NAMES, MODEL_SUGGESTIONS, REPLY_STYLES, ErrorHelper, AppError } from '../types';
 import { CustomStyleManager } from '../components/CustomStyleManager';
-import { Shield, FlaskConical, Zap, Settings, Check, AlertCircle, ChevronDown, Eye, EyeOff, Link2, Database, Bug, Loader2, TestTube } from 'lucide-react';
+import { TestResultModal } from '../components/TestResultModal';
+import { FlaskConical, Zap, Settings, ChevronDown, Eye, EyeOff, Link2, Database, Bug, Loader2, TestTube, AlertCircle } from 'lucide-react';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'config' | 'test' | 'customStyles'>('config');
@@ -15,6 +16,20 @@ function App() {
   const [showToast, setShowToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // 浮层相关状态
+  const [showTestModal, setShowTestModal] = useState(false);
+  const [modalTestResult, setModalTestResult] = useState<{
+    type: 'success' | 'error' | 'loading';
+    title: string;
+    message: string;
+    details?: string;
+    latency?: number;
+    rawData?: any;
+  } | null>(null);
+
+  // 测试相关状态
+  const [testStyle, setTestStyle] = useState('humorous');
 
   // 配置表单状态
   const [formData, setFormData] = useState<AIConfig>({
@@ -108,33 +123,74 @@ function App() {
     const validation = ConfigValidator.validateConfig(formData);
 
     if (!validation.valid) {
-      setTestResult(`❌ 配置验证失败:\n${validation.errors.join('\n')}`);
+      setModalTestResult({
+        type: 'error',
+        title: '配置验证失败',
+        message: '配置信息不完整或格式有误',
+        details: validation.errors.join('\n'),
+      });
+      setShowTestModal(true);
       return;
     }
 
     setIsLoading(true);
-    setTestResult('测试 API 连接...\n');
+
+    // 显示加载中的浮层
+    setModalTestResult({
+      type: 'loading',
+      title: '正在测试 API 连接',
+      message: `正在连接到 ${PROVIDER_NAMES[formData.provider]} 的服务器...`,
+    });
+    setShowTestModal(true);
 
     try {
       const result = await AIService.testConfig(formData);
 
       if (result.success) {
-        setTestResult(
-          (prev) =>
-            prev +
-            `✅ API 连接成功！延迟: ${result.latency}ms\n\n` +
-            `模型: ${formData.model}\n` +
-            `提示: 连接成功，您可以保存配置了`
-        );
+        setModalTestResult({
+          type: 'success',
+          title: 'API 连接成功',
+          message: `成功连接到 ${PROVIDER_NAMES[formData.provider]} 的 API 服务`,
+          details: `✅ 连接状态: 正常\n⏱️ 响应延迟: ${result.latency}ms\n🤖 模型: ${formData.model}\n\n提示: 连接测试通过，您可以保存配置了`,
+          latency: result.latency,
+          rawData: {
+            provider: formData.provider,
+            model: formData.model,
+            apiUrl: formData.apiUrl,
+            testTime: new Date().toISOString(),
+          }
+        });
       } else {
-        // Use ErrorHelper to format error message if possible
         const errorMessage = result.error || '未知错误';
-        setTestResult((prev) => prev + `❌ 连接失败:\n\n${errorMessage}`);
+        setModalTestResult({
+          type: 'error',
+          title: 'API 连接失败',
+          message: '无法连接到 API 服务器',
+          details: `❌ 错误信息:\n${errorMessage}\n\n🔧 调试信息:\n提供商: ${PROVIDER_NAMES[formData.provider]}\nAPI 端点: ${formData.apiUrl}\n模型: ${formData.model}`,
+          rawData: {
+            provider: formData.provider,
+            model: formData.model,
+            apiUrl: formData.apiUrl,
+            error: result.error,
+            testTime: new Date().toISOString(),
+          }
+        });
       }
     } catch (error: unknown) {
-      // Use ErrorHelper to format error for better user experience
       const formattedError = ErrorHelper.formatForUser(error);
-      setTestResult((prev) => prev + `❌ 错误:\n\n${formattedError}`);
+      setModalTestResult({
+        type: 'error',
+        title: 'API 连接失败',
+        message: '测试过程中发生错误',
+        details: `❌ 错误信息:\n${formattedError}\n\n🔧 调试信息:\n提供商: ${PROVIDER_NAMES[formData.provider]}\nAPI 端点: ${formData.apiUrl}\n模型: ${formData.model}`,
+        rawData: {
+          provider: formData.provider,
+          model: formData.model,
+          apiUrl: formData.apiUrl,
+          error: error instanceof Error ? error.message : String(error),
+          testTime: new Date().toISOString(),
+        }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -170,38 +226,81 @@ function App() {
     // 验证配置
     const validation = ConfigValidator.validateConfig(testConfig);
     if (!validation.valid) {
-      setTestResult(`❌ 配置验证失败:\n${validation.errors.join('\n')}`);
+      setModalTestResult({
+        type: 'error',
+        title: '配置验证失败',
+        message: '配置信息不完整或格式有误',
+        details: validation.errors.join('\n'),
+      });
+      setShowTestModal(true);
       return;
     }
 
     setIsLoading(true);
-    setTestResult('生成测试回复...\n');
+
+    // 显示加载中的浮层
+    setModalTestResult({
+      type: 'loading',
+      title: '正在测试 AI 生成',
+      message: '正在向 AI 发送测试请求...',
+    });
+    setShowTestModal(true);
 
     try {
+      const startTime = Date.now();
       const reply = await AIService.generateReplyWithConfig(
         '今天天气真好！☀️',
-        'humorous',
+        testStyle,
         testConfig
       );
+      const latency = Date.now() - startTime;
+
+      setModalTestResult({
+        type: 'success',
+        title: 'AI 生成测试成功',
+        message: 'AI 模型成功生成了回复',
+        details: `✅ 生成状态: 成功\n⏱️ 响应时间: ${latency}ms\n🤖 模型: ${testConfig.model}\n🎭 回复风格: ${REPLY_STYLES.find(s => s.id === testStyle)?.name}\n\n📝 测试推文: "今天天气真好！☀️"\n💬 AI 回复: "${reply}"\n\n字符数: ${reply.length}/280\n\n提示: AI 功能正常，可以在 Twitter 上使用了！`,
+        latency: latency,
+        rawData: {
+          provider: testConfig.provider,
+          model: testConfig.model,
+          style: testStyle,
+          styleName: REPLY_STYLES.find(s => s.id === testStyle)?.name,
+          testTweet: '今天天气真好！☀️',
+          aiReply: reply,
+          replyLength: reply.length,
+          testTime: new Date().toISOString(),
+        }
+      });
 
       setShowToast({
         message: '测试成功！API连接和模型响应正常',
         type: 'success'
       });
-
-      // 3秒后自动关闭toast
       setTimeout(() => setShowToast(null), 3000);
-      setTestResult(`AI 回复: "${reply}"\n\n字符数: ${reply.length}/280`);
     } catch (error: unknown) {
       const formattedError = ErrorHelper.formatForUser(error);
+      setModalTestResult({
+        type: 'error',
+        title: 'AI 生成测试失败',
+        message: 'AI 模型无法生成回复',
+        details: `❌ 错误信息:\n${formattedError}\n\n🔧 调试信息:\n提供商: ${PROVIDER_NAMES[testConfig.provider]}\n模型: ${testConfig.model}\n🎭 回复风格: ${REPLY_STYLES.find(s => s.id === testStyle)?.name}\n\n📝 测试推文: "今天天气真好！☀️"`,
+        rawData: {
+          provider: testConfig.provider,
+          model: testConfig.model,
+          style: testStyle,
+          styleName: REPLY_STYLES.find(s => s.id === testStyle)?.name,
+          testTweet: '今天天气真好！☀️',
+          error: error instanceof Error ? error.message : String(error),
+          testTime: new Date().toISOString(),
+        }
+      });
+
       setShowToast({
         message: '测试失败：' + formattedError.split('\n')[0],
         type: 'error'
       });
-
-      // 5秒后自动关闭toast
       setTimeout(() => setShowToast(null), 5000);
-      setTestResult(`错误详情：\n${formattedError}`);
     } finally {
       setIsLoading(false);
     }
@@ -219,25 +318,9 @@ function App() {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px'
+          justifyContent: 'space-between',
+          width: '100%'
         }}>
-          <div
-            style={{
-              width: '24px',
-              height: '24px',
-              background: 'var(--color-primary)',
-              borderRadius: 'var(--radius-sm)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
-          >
-            <Shield
-              size={14}
-              style={{ color: '#F8F8FA' }}
-            />
-          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1
               style={{
@@ -253,10 +336,38 @@ function App() {
               Twitter Reply Assistant
             </h1>
           </div>
+
+          {/* 连接状态指示器 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 8px',
+            background: config ? 'rgba(95, 207, 128, 0.08)' : 'rgba(255, 179, 102, 0.08)',
+            border: `1px solid ${config ? 'rgba(95, 207, 128, 0.15)' : 'rgba(255, 179, 102, 0.15)'}`,
+            borderRadius: 'var(--radius-base)',
+            flexShrink: 0
+          }}>
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: config ? 'var(--color-success)' : 'var(--color-warning)',
+              flexShrink: 0
+            }} />
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 500,
+              color: config ? 'var(--color-success)' : 'var(--color-warning)',
+              whiteSpace: 'nowrap'
+            }}>
+              {config ? PROVIDER_NAMES[config.provider] : '未配置'}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* 标签导航 */}
+      {/* 标签导航 - 一行显示 */}
       <div style={{
         background: 'var(--color-bg-raised)',
         borderBottom: `1px solid var(--color-border-divider)`,
@@ -264,12 +375,9 @@ function App() {
         flexShrink: 0
       }}>
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: '4px',
-          background: 'var(--color-bg-subtle)',
-          padding: '2px',
-          borderRadius: 'var(--radius-base)'
+          display: 'flex',
+          gap: '8px',
+          width: '100%'
         }}>
           {[
             { id: 'config', label: 'API 配置' },
@@ -280,13 +388,14 @@ function App() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               style={{
-                padding: '8px 4px',
+                flex: 1,
+                padding: '8px 12px',
                 fontSize: '11px',
                 fontWeight: 500,
-                borderRadius: 'var(--radius-xs)',
+                borderRadius: 'var(--radius-base)',
                 background: activeTab === tab.id
                   ? 'var(--color-primary)'
-                  : 'transparent',
+                  : 'var(--color-bg-subtle)',
                 color: activeTab === tab.id
                   ? '#F8F8FA'
                   : 'var(--color-text-muted)',
@@ -316,49 +425,6 @@ function App() {
         {/* API 配置标签页 */}
         {activeTab === 'config' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* 状态指示器 */}
-            {config ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px',
-                background: 'rgba(95, 207, 128, 0.08)',
-                border: `1px solid rgba(95, 207, 128, 0.15)`,
-                borderRadius: 'var(--radius-base)'
-              }}>
-                <Check size={16} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-success)', margin: '0 0 2px 0' }}>
-                    配置已就绪
-                  </p>
-                  <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0 }}>
-                    {PROVIDER_NAMES[config.provider]} · {config.model}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px',
-                background: 'rgba(255, 179, 102, 0.08)',
-                border: `1px solid rgba(255, 179, 102, 0.15)`,
-                borderRadius: 'var(--radius-base)'
-              }}>
-                <AlertCircle size={16} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-warning)', margin: '0 0 2px 0' }}>
-                    需要配置 API
-                  </p>
-                  <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', margin: 0 }}>
-                    请配置 API 以使用智能回复功能
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* AI 提供商 */}
             <div>
               <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
@@ -628,7 +694,7 @@ function App() {
   
         {/* 自定义风格标签页 */}
         {activeTab === 'customStyles' && (
-          <CustomStyleManager />
+          <CustomStyleManager key="custom-styles" />
         )}
 
         {/* 测试标签页 */}
@@ -676,6 +742,64 @@ function App() {
                     验证当前配置是否能正常生成回复
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* 风格选择器 */}
+            <div>
+              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                选择回复风格
+              </h3>
+              <select
+                value={testStyle}
+                onChange={(e) => setTestStyle(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '40px',
+                  padding: '0 36px 0 12px',
+                  fontSize: '14px',
+                  background: 'var(--color-bg-surface)',
+                  border: `1px solid var(--color-border-light)`,
+                  borderRadius: '8px',
+                  color: 'var(--color-text-primary)',
+                  transition: 'all var(--transition-base)',
+                  cursor: 'pointer',
+                  boxSizing: 'border-box',
+                  appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 12px center',
+                  backgroundSize: '16px'
+                }}
+              >
+                {REPLY_STYLES.map((style) => (
+                  <option key={style.id} value={style.id}>
+                    {style.icon} {style.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 系统提示词预览 */}
+            <div>
+              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                系统提示词
+              </h3>
+              <div style={{
+                padding: '12px',
+                background: 'var(--color-bg-elevated)',
+                border: `1px solid var(--color-border-light)`,
+                borderRadius: '8px'
+              }}>
+                <p style={{
+                  fontSize: '12px',
+                  color: 'var(--color-text-secondary)',
+                  lineHeight: 1.5,
+                  margin: 0,
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {REPLY_STYLES.find(s => s.id === testStyle)?.systemPrompt}
+                </p>
               </div>
             </div>
 
@@ -807,6 +931,13 @@ function App() {
       )}
 
       {/* 无底部状态栏，避免重叠 */}
+
+      {/* 测试结果浮层 */}
+      <TestResultModal
+        isOpen={showTestModal}
+        onClose={() => setShowTestModal(false)}
+        testResult={modalTestResult}
+      />
     </div>
   );
 }
