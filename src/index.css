@@ -484,11 +484,11 @@ button {
 @keyframes modalSlideIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -45%) scale(0.95);
+    transform: translateY(12px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -504,11 +504,11 @@ button {
 @keyframes modalSlideOut {
   from {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateY(0) scale(1);
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -55%) scale(0.95);
+    transform: translateY(12px) scale(0.98);
   }
 }
 

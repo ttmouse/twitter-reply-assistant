@@ -7,376 +7,11 @@
 import React, { useState, useEffect } from 'react';
 import { StorageService, ConfigValidator } from '../services/storage-service';
 import type { CustomReplyStyle } from '../types';
-import { MAX_CUSTOM_STYLES, CUSTOM_STYLE_CONSTRAINTS, ErrorHelper } from '../types';
-import { Settings, Plus, Edit3, Trash2, AlertCircle, Check, Loader2, Palette, Clock, MessageSquare, X } from 'lucide-react';
-
-
-// 浮层编辑组件
-interface EditModalProps {
-  isOpen: boolean;
-  style: CustomReplyStyle | null;
-  onClose: () => void;
-  onSave: (data: Omit<CustomReplyStyle, 'id' | 'createdAt'>) => Promise<void>;
-  isLoading: boolean;
-  formErrors: string[];
-}
-
-function EditModal({ isOpen, style, onClose, onSave, isLoading, formErrors }: EditModalProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    systemPrompt: '',
-    updatedAt: Date.now(),
-  });
-
-  useEffect(() => {
-    if (style) {
-      setFormData({
-        name: style.name,
-        description: style.description,
-        systemPrompt: style.systemPrompt,
-        updatedAt: style.updatedAt,
-      });
-    } else {
-      setFormData({
-        name: '',
-        description: '',
-        systemPrompt: '',
-        updatedAt: Date.now(),
-      });
-    }
-  }, [style]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '20px',
-        boxSizing: 'border-box'
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: 'var(--color-bg-base)',
-          borderRadius: '12px',
-          width: '100%',
-          maxWidth: '520px',
-          maxHeight: '90vh',
-          overflow: 'auto',
-          padding: '24px',
-          boxSizing: 'border-box',
-          animation: 'fadeIn var(--transition-base) ease-out'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 头部 */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '20px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              background: 'var(--color-primary)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              {style ? (
-                <Edit3 size={16} style={{ color: '#F8F8FA' }} />
-              ) : (
-                <Plus size={16} style={{ color: '#F8F8FA' }} />
-              )}
-            </div>
-            <h3 style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              margin: 0
-            }}>
-              {style ? '编辑风格' : '添加新风格'}
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              border: 'none',
-              background: 'var(--color-bg-elevated)',
-              color: 'var(--color-text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all var(--transition-base)'
-            }}
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* 表单内容 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* 风格名称 */}
-          <div>
-            <label style={{
-              fontSize: '13px',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              marginBottom: '8px',
-              display: 'block'
-            }}>
-              风格名称 *
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value, updatedAt: Date.now() })}
-              placeholder="例如：诗意浪漫"
-              maxLength={CUSTOM_STYLE_CONSTRAINTS.NAME_MAX_LENGTH}
-              style={{
-                width: '100%',
-                height: '40px',
-                padding: '0 12px',
-                fontSize: '14px',
-                background: 'var(--color-bg-surface)',
-                border: `1px solid var(--color-border-light)`,
-                borderRadius: '8px',
-                color: 'var(--color-text-primary)',
-                transition: 'all var(--transition-base)',
-                boxSizing: 'border-box'
-              }}
-            />
-            <div style={{
-              fontSize: '11px',
-              color: 'var(--color-text-muted)',
-              marginTop: '6px',
-              textAlign: 'right'
-            }}>
-              {formData.name.length}/{CUSTOM_STYLE_CONSTRAINTS.NAME_MAX_LENGTH}
-            </div>
-          </div>
-
-          
-          {/* 描述/}
-          <div>
-            <label style={{
-              fontSize: '13px',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              marginBottom: '8px',
-              display: 'block'
-            }}>
-              描述
-            </label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value, updatedAt: Date.now() })}
-              placeholder="例如：适用于文艺、情感类话题"
-              maxLength={CUSTOM_STYLE_CONSTRAINTS.DESCRIPTION_MAX_LENGTH}
-              style={{
-                width: '100%',
-                height: '40px',
-                padding: '0 12px',
-                fontSize: '14px',
-                background: 'var(--color-bg-surface)',
-                border: `1px solid var(--color-border-light)`,
-                borderRadius: '8px',
-                color: 'var(--color-text-primary)',
-                transition: 'all var(--transition-base)',
-                boxSizing: 'border-box'
-              }}
-            />
-            <div style={{
-              fontSize: '11px',
-              color: 'var(--color-text-muted)',
-              marginTop: '6px',
-              textAlign: 'right'
-            }}>
-              {formData.description.length}/{CUSTOM_STYLE_CONSTRAINTS.DESCRIPTION_MAX_LENGTH}
-            </div>
-          </div>
-
-          {/* 系统提示词 */}
-          <div>
-            <label style={{
-              fontSize: '13px',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              marginBottom: '8px',
-              display: 'block'
-            }}>
-              系统提示词 *
-            </label>
-            <textarea
-              value={formData.systemPrompt}
-              onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value, updatedAt: Date.now() })}
-              placeholder="例如：你是一个富有诗意的评论者。请用优美、浪漫的语言回复推文，可以引用诗句或使用比喻..."
-              rows={6}
-              maxLength={CUSTOM_STYLE_CONSTRAINTS.PROMPT_MAX_LENGTH}
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '14px',
-                background: 'var(--color-bg-surface)',
-                border: `1px solid var(--color-border-light)`,
-                borderRadius: '8px',
-                color: 'var(--color-text-primary)',
-                transition: 'all var(--transition-base)',
-                boxSizing: 'border-box',
-                resize: 'none',
-                fontFamily: 'inherit',
-                lineHeight: 1.5,
-                minHeight: '120px'
-              }}
-            />
-            <div style={{
-              fontSize: '11px',
-              color: 'var(--color-text-muted)',
-              marginTop: '6px',
-              textAlign: 'right'
-            }}>
-              {formData.systemPrompt.length}/{CUSTOM_STYLE_CONSTRAINTS.PROMPT_MAX_LENGTH}
-              {' '}（至少 {CUSTOM_STYLE_CONSTRAINTS.PROMPT_MIN_LENGTH} 字符）
-            </div>
-          </div>
-
-          {/* 验证错误 */}
-          {formErrors.length > 0 && (
-            <div style={{
-              padding: '12px 16px',
-              background: 'rgba(255, 107, 107, 0.08)',
-              border: `1px solid rgba(255, 107, 107, 0.15)`,
-              borderRadius: '8px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '12px'
-              }}>
-                <AlertCircle
-                  size={16}
-                  style={{ color: 'var(--color-error)', flexShrink: 0, marginTop: '2px' }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--color-error)',
-                    marginBottom: '8px',
-                    margin: '0 0 8px 0'
-                  }}>
-                    请修正以下错误：
-                  </p>
-                  <ul style={{
-                    fontSize: '12px',
-                    color: 'var(--color-error)',
-                    margin: 0,
-                    paddingLeft: '16px',
-                    listStylePosition: 'inside'
-                  }}>
-                    {formErrors.map((error, index) => (
-                      <li key={index} style={{ marginBottom: '4px' }}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 操作按钮 */}
-          <div style={{
-            display: 'flex',
-            gap: '12px',
-            paddingTop: '8px'
-          }}>
-            <button
-              onClick={() => onSave({ ...formData, icon: '🎨' })}
-              disabled={isLoading}
-              style={{
-                flex: 1,
-                height: '44px',
-                padding: '0 16px',
-                fontSize: '14px',
-                fontWeight: 600,
-                background: isLoading ? 'var(--color-bg-muted)' : 'var(--color-primary)',
-                color: isLoading ? 'var(--color-text-disabled)' : '#F8F8FA',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                transition: 'all var(--transition-base)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>保存中...</span>
-                </>
-              ) : (
-                <>
-                  <Check size={16} />
-                  <span>{style ? '保存修改' : '添加风格'}</span>
-                </>
-              )}
-            </button>
-            <button
-              onClick={onClose}
-              disabled={isLoading}
-              style={{
-                flex: 1,
-                height: '44px',
-                padding: '0 16px',
-                fontSize: '14px',
-                fontWeight: 600,
-                background: 'var(--color-bg-elevated)',
-                color: 'var(--color-text-secondary)',
-                border: '1px solid var(--color-border-light)',
-                borderRadius: '8px',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                transition: 'all var(--transition-base)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              <X size={16} />
-              <span>取消</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { MAX_CUSTOM_STYLES, ErrorHelper } from '../types';
+import { Settings, Plus, Edit3, Trash2, AlertCircle, Palette, Clock, MessageSquare } from 'lucide-react';
+import { colors, spacing, typography, borderRadius, shadows, transitions, container } from '../styles/design-tokens';
+import { Button, ButtonGroup } from './Button';
+import { EditModal } from './CustomStyleManagerEditModal';
 
 export function CustomStyleManager() {
   const [styles, setStyles] = useState<CustomReplyStyle[]>([]);
@@ -522,19 +157,28 @@ export function CustomStyleManager() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[3] }}>
       {/* 顶部标题栏 */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '16px'
+        gap: spacing[4],
       }}>
         <div>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 4px 0' }}>
+          <h3 style={{
+            fontSize: typography.fontSize.xl,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            margin: `0 0 ${spacing[1]} 0`
+          }}>
             自定义回复风格
           </h3>
-          <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: 0 }}>
+          <p style={{
+            fontSize: typography.fontSize.sm,
+            color: colors.text.secondary,
+            margin: 0
+          }}>
             {styles.length}/{MAX_CUSTOM_STYLES} 个风格
           </p>
         </div>
@@ -542,27 +186,44 @@ export function CustomStyleManager() {
           onClick={handleAdd}
           disabled={isLoading || styles.length >= MAX_CUSTOM_STYLES}
           style={{
-            padding: '10px 20px',
-            fontSize: '13px',
-            fontWeight: 600,
-            height: '40px',
+            padding: `0 ${spacing[5]}`,
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.semibold,
+            height: container.buttonHeight,
             background: isLoading || styles.length >= MAX_CUSTOM_STYLES
-              ? 'var(--color-bg-muted)'
-              : 'var(--color-primary)',
+              ? colors.bg.border
+              : colors.primary[500],
             color: isLoading || styles.length >= MAX_CUSTOM_STYLES
-              ? 'var(--color-text-disabled)'
-              : '#F8F8FA',
+              ? colors.text.disabled
+              : '#FFFFFF',
             border: 'none',
-            borderRadius: '8px',
+            borderRadius: borderRadius.base,
             cursor: isLoading || styles.length >= MAX_CUSTOM_STYLES
               ? 'not-allowed'
               : 'pointer',
-            transition: 'all var(--transition-base)',
+            transition: `all ${transitions.duration.normal} ${transitions.easing.easeOut}`,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: spacing[2],
             whiteSpace: 'nowrap',
-            flexShrink: 0
+            flexShrink: 0,
+            boxShadow: isLoading || styles.length >= MAX_CUSTOM_STYLES
+              ? 'none'
+              : shadows.sm,
+          }}
+          onMouseEnter={(e) => {
+            if (!isLoading && styles.length < MAX_CUSTOM_STYLES) {
+              e.currentTarget.style.backgroundColor = colors.primary[600];
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = shadows.md;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isLoading && styles.length < MAX_CUSTOM_STYLES) {
+              e.currentTarget.style.backgroundColor = colors.primary[500];
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = shadows.sm;
+            }
           }}
         >
           <Plus size={16} />
@@ -573,53 +234,50 @@ export function CustomStyleManager() {
       {/* 消息提示 */}
       {message && (
         <div style={{
-          padding: '12px 16px',
+          padding: `${spacing[3]} ${spacing[4]}`,
           background: message.type === 'success'
-            ? 'rgba(95, 207, 128, 0.08)'
-            : 'rgba(255, 107, 107, 0.08)',
+            ? `${colors.success[500]}08`
+            : `${colors.error[500]}08`,
           border: `1px solid ${
             message.type === 'success'
-              ? 'rgba(95, 207, 128, 0.15)'
-              : 'rgba(255, 107, 107, 0.15)'
+              ? `${colors.success[500]}15`
+              : `${colors.error[500]}15`
           }`,
-          borderRadius: '8px',
-          animation: 'fadeIn var(--transition-base) ease-out'
+          borderRadius: borderRadius.base,
+          animation: `fadeIn ${transitions.duration.normal} ${transitions.easing.easeOut}`
         }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px'
+            gap: spacing[2]
           }}>
             <div style={{
               width: '20px',
               height: '20px',
-              borderRadius: '50%',
+              borderRadius: borderRadius.full,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
               background: message.type === 'success'
-                ? 'var(--color-success)'
-                : 'var(--color-error)'
+                ? colors.success[500]
+                : colors.error[500]
             }}>
               {message.type === 'success' ? (
-                <Check
-                  size={12}
-                  style={{ color: '#F8F8FA' }}
-                />
+                <span style={{ color: '#FFFFFF', fontSize: '12px' }}>✓</span>
               ) : (
                 <AlertCircle
                   size={12}
-                  style={{ color: '#F8F8FA' }}
+                  style={{ color: '#FFFFFF' }}
                 />
               )}
             </div>
             <span style={{
-              fontSize: '13px',
+              fontSize: typography.fontSize.sm,
               color: message.type === 'success'
-                ? 'var(--color-success)'
-                : 'var(--color-error)',
-              fontWeight: 500
+                ? colors.success[500]
+                : colors.error[500],
+              fontWeight: typography.fontWeight.medium
             }}>
               {message.text}
             </span>
@@ -644,81 +302,62 @@ export function CustomStyleManager() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '40px 20px',
-          background: 'var(--color-bg-elevated)',
-          borderRadius: '8px',
-          border: `1px solid var(--color-border-light)`,
+          padding: `${spacing[10]} ${spacing[5]}`,
+          background: colors.bg.elevated,
+          borderRadius: borderRadius.base,
+          border: `1px solid ${colors.bg.borderLight}`,
           textAlign: 'center',
-          animation: 'fadeIn var(--transition-base) ease-out'
+          animation: `fadeIn ${transitions.duration.normal} ${transitions.easing.easeOut}`
         }}>
           <h3 style={{
-            fontSize: '15px',
-            fontWeight: 600,
-            color: 'var(--color-text-primary)',
-            margin: '0 0 8px 0'
+            fontSize: typography.fontSize.base,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            margin: `0 0 ${spacing[2]} 0`
           }}>
             还没有自定义风格
           </h3>
           <p style={{
-            fontSize: '13px',
-            color: 'var(--color-text-secondary)',
-            margin: '0 0 20px 0',
-            lineHeight: 1.4
+            fontSize: typography.fontSize.sm,
+            color: colors.text.secondary,
+            margin: `0 0 ${spacing[4]} 0`,
+            lineHeight: typography.lineHeight.normal
           }}>
             创建属于您的个性化回复风格，让AI回复更符合您的表达习惯
           </p>
-          <button
+          <Button
+            variant="primary"
             onClick={handleAdd}
             disabled={isLoading || styles.length >= MAX_CUSTOM_STYLES}
-            style={{
-              padding: '10px 20px',
-              fontSize: '13px',
-              fontWeight: 600,
-              height: '40px',
-              background: isLoading || styles.length >= MAX_CUSTOM_STYLES
-                ? 'var(--color-bg-muted)'
-                : 'var(--color-primary)',
-              color: isLoading || styles.length >= MAX_CUSTOM_STYLES
-                ? 'var(--color-text-disabled)'
-                : '#F8F8FA',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: isLoading || styles.length >= MAX_CUSTOM_STYLES
-                ? 'not-allowed'
-                : 'pointer',
-              transition: 'all var(--transition-base)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
+            loading={isLoading}
+            leftIcon={<Plus size={16} />}
           >
-            <Plus size={16} />
-            <span>创建第一个风格</span>
-          </button>
+            创建第一个风格
+          </Button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[2] }}>
           {styles.map((style, index) => (
             <div
               key={style.id}
               style={{
-                padding: '18px 20px',
-                background: 'var(--color-bg-elevated)',
-                borderRadius: '10px',
-                border: `1px solid var(--color-border-light)`,
-                transition: 'all 0.2s ease',
+                padding: `${spacing[3]} ${spacing[4]}`, // 12px 16px - 减少内边距
+                background: colors.bg.elevated,
+                borderRadius: borderRadius.md, // 8px - 稍微减少圆角
+                border: `1px solid ${colors.bg.borderLight}`,
+                transition: `all ${transitions.duration.fast} ${transitions.easing.easeOut}`,
                 animation: `fadeIn 0.3s ease-out ${index * 0.06}s both`,
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-                position: 'relative'
+                boxShadow: shadows.sm,
+                position: 'relative',
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[3] }}> {/* 12px gap */}
                 {/* 标题行包含操作按钮 */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '16px'
+                  gap: spacing[3], // 12px gap
                 }}>
                   <div style={{
                     display: 'flex',
@@ -727,14 +366,14 @@ export function CustomStyleManager() {
                     minWidth: 0
                   }}>
                     <h3 style={{
-                      fontSize: '16px',
-                      fontWeight: 600,
-                      color: 'var(--color-text-primary)',
+                      fontSize: typography.fontSize.lg, // 14px - 减小字体
+                      fontWeight: typography.fontWeight.semibold,
+                      color: colors.text.primary,
                       margin: 0,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      letterSpacing: '-0.2px'
+                      lineHeight: 1.2,
                     }}>
                       {style.name}
                     </h3>
@@ -743,77 +382,72 @@ export function CustomStyleManager() {
                   {/* 操作按钮 */}
                   <div style={{
                     display: 'flex',
-                    gap: '6px',
-                    flexShrink: 0
+                    gap: spacing[1], // 4px gap - 减少按钮间距
+                    flexShrink: 0,
                   }}>
                     <button
                       onClick={() => handleEdit(style)}
                       disabled={isLoading}
                       title="编辑"
                       style={{
-                        width: '34px',
-                        height: '34px',
+                        width: '28px', // 减小按钮尺寸
+                        height: '28px',
                         background: isLoading
-                          ? 'var(--color-bg-muted)'
-                          : 'linear-gradient(135deg, var(--color-primary), rgba(107, 127, 255, 0.9))',
+                          ? colors.bg.border
+                          : `${colors.primary[500]}15`, // 非常淡的背景色
                         color: isLoading
-                          ? 'var(--color-text-disabled)'
-                          : '#FFFFFF',
-                        border: 'none',
-                        borderRadius: '8px',
+                          ? colors.text.disabled
+                          : colors.primary[500], // 使用主色而不是白色
+                        border: `1px solid ${colors.primary[500]}20`, // 非常淡的边框
+                        borderRadius: borderRadius.sm, // 4px - 更小的圆角
                         cursor: isLoading ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s ease',
+                        transition: `all ${transitions.duration.fast} ${transitions.easing.easeOut}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 2px 4px rgba(107, 127, 255, 0.25)',
-                        fontSize: '15px'
                       }}
                       onMouseEnter={(e) => {
                         if (!isLoading) {
-                          e.currentTarget.style.transform = 'translateY(-1px)';
-                          e.currentTarget.style.boxShadow = '0 4px 8px rgba(107, 127, 255, 0.35)';
+                          e.currentTarget.style.background = `${colors.primary[500]}25`; // 稍微增强背景
+                          e.currentTarget.style.borderColor = `${colors.primary[500]}40`;
                         }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(107, 127, 255, 0.25)';
+                        e.currentTarget.style.background = `${colors.primary[500]}15`;
+                        e.currentTarget.style.borderColor = `${colors.primary[500]}20`;
                       }}
                     >
-                      <Edit3 size={15} />
+                      <Edit3 size={12} />
                     </button>
                     <button
                       onClick={() => handleDelete(style.id, style.name)}
                       disabled={isLoading}
                       title="删除"
                       style={{
-                        width: '34px',
-                        height: '34px',
-                        background: 'var(--color-bg-elevated)',
-                        color: 'var(--color-error)',
-                        border: '1.5px solid var(--color-error)',
-                        borderRadius: '8px',
+                        width: '28px', // 减小按钮尺寸
+                        height: '28px',
+                        background: `${colors.error[500]}10`, // 非常淡的红色背景
+                        color: colors.error[500],
+                        border: `1px solid ${colors.error[500]}20`, // 非常淡的边框
+                        borderRadius: borderRadius.sm, // 4px
                         cursor: isLoading ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s ease',
+                        transition: `all ${transitions.duration.fast} ${transitions.easing.easeOut}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '15px'
                       }}
                       onMouseEnter={(e) => {
                         if (!isLoading) {
-                          e.currentTarget.style.background = 'var(--color-error)';
-                          e.currentTarget.style.color = '#FFFFFF';
-                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.background = `${colors.error[500]}20`; // 稍微增强背景
+                          e.currentTarget.style.borderColor = `${colors.error[500]}35`;
                         }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'var(--color-bg-elevated)';
-                        e.currentTarget.style.color = 'var(--color-error)';
-                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.background = `${colors.error[500]}10`;
+                        e.currentTarget.style.borderColor = `${colors.error[500]}20`;
                       }}
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={12} />
                     </button>
                   </div>
                 </div>
@@ -822,38 +456,38 @@ export function CustomStyleManager() {
                 <div>
                   {/* 系统提示词预览 */}
                   <div style={{
-                    background: 'linear-gradient(135deg, var(--color-bg-subtle), rgba(0, 0, 0, 0.02))',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    border: `1px solid rgba(0, 0, 0, 0.06)`,
-                    marginBottom: '10px',
+                    background: colors.bg.surface,
+                    borderRadius: borderRadius.sm, // 4px
+                    padding: spacing[3], // 12px - 减少padding
+                    border: `1px solid ${colors.bg.borderLight}`,
+                    marginBottom: spacing[2], // 8px - 减少底部间距
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
                   }}>
                     <div style={{
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      color: 'var(--color-text-tertiary)',
-                      marginBottom: '8px',
+                      fontSize: typography.fontSize.xs, // 11px
+                      fontWeight: typography.fontWeight.semibold,
+                      color: colors.text.tertiary,
+                      marginBottom: spacing[2], // 8px
                       textTransform: 'uppercase',
-                      letterSpacing: '1px',
+                      letterSpacing: '0.5px', // 减少字间距
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px'
+                      gap: spacing[1], // 4px
                     }}>
                       <div style={{
-                        width: '8px',
-                        height: '8px',
-                        background: 'var(--color-primary)',
-                        borderRadius: '50%',
-                        opacity: 0.6
+                        width: '4px', // 更小的圆点
+                        height: '4px',
+                        background: colors.primary[500],
+                        borderRadius: borderRadius.full,
+                        opacity: 0.4, // 更透明的圆点
                       }} />
                       系统提示词
                     </div>
                     <p style={{
-                      fontSize: '13px',
-                      color: 'var(--color-text-secondary)',
-                      lineHeight: 1.6,
+                      fontSize: typography.fontSize.sm, // 12px - 减小字体
+                      color: colors.text.secondary,
+                      lineHeight: typography.lineHeight.normal, // 1.4
                       whiteSpace: 'pre-wrap',
                       wordWrap: 'break-word',
                       overflow: 'hidden',
@@ -861,7 +495,6 @@ export function CustomStyleManager() {
                       WebkitLineClamp: 3,
                       WebkitBoxOrient: 'vertical',
                       margin: 0,
-                      letterSpacing: '0.1px'
                     }}>
                       {style.systemPrompt}
                     </p>
@@ -869,14 +502,17 @@ export function CustomStyleManager() {
 
                   {/* 时间戳 */}
                   <div style={{
-                    fontSize: '11px',
-                    color: 'var(--color-text-tertiary)',
-                    opacity: 0.7,
+                    fontSize: typography.fontSize.xs, // 11px
+                    color: colors.text.tertiary,
+                    opacity: 0.8,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: spacing[1], // 4px
                   }}>
-                    <span style={{ fontSize: '10px' }}>●</span>
+                    <span style={{
+                      fontSize: '6px', // 更小的圆点
+                      opacity: 0.3, // 更透明
+                    }}>●</span>
                     {new Date(style.createdAt).toLocaleDateString('zh-CN', {
                       year: 'numeric',
                       month: 'short',
@@ -893,33 +529,33 @@ export function CustomStyleManager() {
       {/* 限制提示 */}
       {styles.length >= MAX_CUSTOM_STYLES && (
         <div style={{
-          padding: '12px 16px',
-          background: 'rgba(255, 179, 102, 0.1)',
-          border: `1px solid rgba(255, 179, 102, 0.3)`,
-          borderRadius: '8px',
-          animation: 'fadeIn var(--transition-base) ease-out'
+          padding: `${spacing[3]} ${spacing[4]}`,
+          background: `${colors.warning[500]}10`,
+          border: `1px solid ${colors.warning[500]}30`,
+          borderRadius: borderRadius.base,
+          animation: `fadeIn ${transitions.duration.normal} ${transitions.easing.easeOut}`
         }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px'
+            gap: spacing[3]
           }}>
             <AlertCircle
               size={16}
-              style={{ color: 'var(--color-warning)', flexShrink: 0 }}
+              style={{ color: colors.warning[500], flexShrink: 0 }}
             />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: '13px',
-                fontWeight: 600,
-                color: 'var(--color-warning)',
-                marginBottom: '2px'
+                fontSize: typography.fontSize.sm,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.warning[500],
+                marginBottom: spacing[0]
               }}>
                 已达到风格数量上限
               </div>
               <div style={{
-                fontSize: '12px',
-                color: 'var(--color-warning)',
+                fontSize: typography.fontSize.xs,
+                color: colors.warning[500],
                 opacity: 0.9
               }}>
                 您已创建 {MAX_CUSTOM_STYLES} 个自定义风格，请先删除现有风格再添加新风格。

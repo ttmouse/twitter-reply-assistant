@@ -5,7 +5,7 @@
  */
 
 // 导入样式
-import './styles.css';
+import './styles-optimized.css';
 
 // 导入注入器
 import { twitterInjector } from './twitter-injector.tsx';

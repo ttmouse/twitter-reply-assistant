@@ -10,6 +10,11 @@ import { Bot, Brain, Sparkles, MessageCircle } from 'lucide-react';
 import type { ReplyStyle } from '../types';
 import { REPLY_STYLES } from '../types';
 import { StorageService } from '../services/storage-service';
+import { 
+  calculatePopupPosition, 
+  Z_INDEX, 
+  getResponsivePopupStyles 
+} from '../utils/popup-position';
 
 interface StyleSelectorProps {
   /** 选择风格时的回调 */
@@ -99,35 +104,61 @@ export function StyleSelector({
   // 计算菜单位置
   const getMenuPosition = () => {
     if (!buttonRect) {
+      // 如果没有按钮位置信息，使用默认位置
       return {
-        top: '0px',
-        left: '40px',
+        position: 'fixed' as const,
+        top: '20px',
+        left: '20px',
+        width: '230px',
+        maxHeight: 'calc(100vh - 40px)',
+        zIndex: Z_INDEX.TWITTER_DROPDOWN,
+        backgroundColor: 'rgba(32, 35, 39, 1)',
+        borderRadius: '16px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)',
+        border: '1px solid rgba(47, 51, 54, 1)',
+        overflow: 'auto',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        animation: 'fadeInScale 0.15s ease-out',
       };
     }
 
+    // 计算初始位置（按钮右侧）
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-
-    // 菜单显示在按钮右侧，确保不被视口边缘裁剪
-    const menuWidth = 230;
-    const menuHeight = 400;
-
+    
     let left = buttonRect.right + 4; // 按钮右边 + 4px间距
     let top = buttonRect.top;
-
+    
+    // 确保菜单不超出视口
+    const menuWidth = 230;
+    const menuHeight = 400;
+    
     // 如果右侧空间不足，显示在左侧
     if (left + menuWidth > window.innerWidth + scrollLeft) {
       left = buttonRect.left - menuWidth - 4;
     }
-
+    
     // 如果下方空间不足，向上调整
     if (top + menuHeight > window.innerHeight + scrollTop) {
-      top = window.innerHeight + scrollTop - menuHeight - 20;
+      top = Math.max(scrollTop + 10, window.innerHeight + scrollTop - menuHeight - 10);
     }
 
     return {
+      position: 'fixed' as const,
       top: `${top}px`,
       left: `${left}px`,
+      width: '230px',
+      maxHeight: 'calc(-48px + 100vh)',
+      zIndex: Z_INDEX.TWITTER_DROPDOWN,
+      backgroundColor: 'rgba(32, 35, 39, 1)',
+      borderRadius: '16px',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)',
+      border: '1px solid rgba(47, 51, 54, 1)',
+      overflow: 'auto',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      animation: 'fadeInScale 0.15s ease-out',
     };
   };
 
@@ -162,21 +193,7 @@ export function StyleSelector({
       role="menu"
       className="css-175oi2r r-j2cz3j r-kemksi r-1q9bdsx r-qo02w8 r-1udh08x r-1rnoaur r-1r851ge r-1xcajam twitter-ai-style-selector"
       ref={containerRef}
-      style={{
-        position: 'fixed',
-        top: menuPosition.top,
-        left: menuPosition.left,
-        zIndex: 2147483647,
-        backgroundColor: 'rgba(32, 35, 39, 1)',
-        backdropFilter: 'blur(12px)',
-        borderRadius: '16px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)',
-        border: '1px solid rgba(47, 51, 54, 1)',
-        minWidth: '230px',
-        maxHeight: 'calc(-48px + 100vh)',
-        overflowY: 'auto',
-        animation: 'fadeInScale 0.15s ease-out',
-      }}
+      style={menuPosition}
     >
       <div className="css-175oi2r">
         <div className="css-175oi2r" data-testid="Dropdown">

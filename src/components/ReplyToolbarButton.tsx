@@ -11,6 +11,7 @@ import { StyleSelector } from './StyleSelector';
 import { AIService } from '../services/ai-service';
 import { TwitterDOM } from '../utils/twitter-dom';
 import { ErrorHelper, AppError, ErrorType } from '../types';
+import { Z_INDEX } from '../utils/popup-position';
 
 interface ReplyToolbarButtonProps {
   /** 推文文本内容 */
@@ -120,7 +121,7 @@ export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonPr
       padding: '12px 24px',
       borderRadius: '8px',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-      zIndex: '10000',
+      zIndex: Z_INDEX.NOTIFICATION,
       fontSize: '14px',
       fontWeight: '600',
     });
@@ -150,7 +151,7 @@ export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonPr
       padding: '16px',
       borderRadius: '12px',
       boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-      zIndex: '10000',
+      zIndex: Z_INDEX.NOTIFICATION,
       fontSize: '13px',
       maxWidth: '350px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',

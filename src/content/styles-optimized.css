@@ -1,0 +1,184 @@
+/* Content Script Styles - Optimized */
+/* Styles for AI reply button and UI injected into Twitter */
+
+/* AI 按钮容器 */
+.twitter-ai-button-container {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+/* 动画定义 - 只定义一次，避免重复 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeInScaleMenu {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* AI 回复按钮 */
+.twitter-ai-reply-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+/* 风格选择器 */
+.twitter-ai-style-selector {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  
+  /* 定义SVG尺寸变量，避免使用!important */
+  --svg-size: 14px;
+  --svg-size-title: 16px;
+}
+
+/* 风格选项 */
+.twitter-ai-style-option {
+  font-family: inherit;
+}
+
+.twitter-ai-style-option:hover {
+  background-color: #f7f9f9;
+}
+
+.twitter-ai-style-option:active {
+  background-color: #eff3f4;
+}
+
+/* 防止样式冲突 */
+.twitter-ai-button-container * {
+  box-sizing: border-box;
+}
+
+/* =================================================
+   SVG 图标尺寸控制 - 优化版本
+   使用CSS变量替代!important，更易维护
+   ================================================= */
+
+/* 风格选择器中的所有SVG图标使用CSS变量 */
+.twitter-ai-style-selector svg {
+  width: var(--svg-size);
+  height: var(--svg-size);
+  min-width: var(--svg-size);
+  min-height: var(--svg-size);
+  max-width: var(--svg-size);
+  max-height: var(--svg-size);
+  flex-shrink: 0;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+/* 标题中的图标稍大一些 */
+.twitter-ai-style-selector h3 svg {
+  width: var(--svg-size-title);
+  height: var(--svg-size-title);
+  min-width: var(--svg-size-title);
+  min-height: var(--svg-size-title);
+  max-width: var(--svg-size-title);
+  max-height: var(--svg-size-title);
+}
+
+/* 工具栏按钮中的AI机器人图标 */
+.twitter-ai-toolbar-container button {
+  font-size: 18px;
+}
+
+/* 重置可能的尺寸约束类 */
+.twitter-ai-style-selector [class*="w-"],
+.twitter-ai-style-selector [class*="h-"] {
+  width: auto;
+  height: auto;
+  min-width: auto;
+  min-height: auto;
+  max-width: none;
+  max-height: none;
+}
+
+/* =================================================
+   End of SVG 图标尺寸控制
+   ================================================= */
+
+/* AI 菜单项自定义样式 - 移除!important */
+.twitter-ai-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+.twitter-ai-menu-item:focus {
+  background-color: rgba(255, 255, 255, 0.07);
+  outline: none;
+}
+
+.twitter-ai-menu-item:active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 菜单项文字为白色 */
+.twitter-ai-menu-item .css-146c3p1,
+.twitter-ai-menu-item .css-1jxf684 {
+  color: rgb(231, 233, 234); /* Twitter默认的白色文字 */
+}
+
+.twitter-ai-menu-item [dir="ltr"] {
+  color: rgb(231, 233, 234);
+}
+
+.twitter-ai-loading {
+  animation: spin 1s linear infinite;
+}
+
+/* 响应式调整 - 在小屏幕设备上调整字体大小和间距 */
+@media (max-width: 600px), (max-height: 600px) {
+  .twitter-ai-style-selector {
+    --svg-size: 12px;
+    --svg-size-title: 14px;
+  }
+  
+  .twitter-ai-menu-item {
+    padding: 8px 12px; /* 减小内边距 */
+  }
+}

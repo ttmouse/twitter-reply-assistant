@@ -135,26 +135,26 @@
 
 /* AI 菜单项自定义样式 */
 .twitter-ai-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.07) !important;
+  background-color: rgba(255, 255, 255, 0.07);
 }
 
 .twitter-ai-menu-item:focus {
-  background-color: rgba(255, 255, 255, 0.07) !important;
-  outline: none !important;
+  background-color: rgba(255, 255, 255, 0.07);
+  outline: none;
 }
 
 .twitter-ai-menu-item:active {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* 强制菜单项文字为白色 */
+/* 菜单项文字为白色 */
 .twitter-ai-menu-item .css-146c3p1,
 .twitter-ai-menu-item .css-1jxf684 {
-  color: rgb(231, 233, 234) !important; /* Twitter默认的白色文字 */
+  color: rgb(231, 233, 234); /* Twitter默认的白色文字 */
 }
 
 .twitter-ai-menu-item [dir="ltr"] {
-  color: rgb(231, 233, 234) !important;
+  color: rgb(231, 233, 234);
 }
 
 /* 淡入缩放动画 - 用于下拉菜单 */

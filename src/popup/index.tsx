@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../index.css';
+import '../content/styles-optimized.css';
 import { StorageService, ConfigValidator } from '../services/storage-service';
 import { AIService } from '../services/ai-service';
 import type { AIConfig, AIProvider } from '../types';
 import { PROVIDER_URLS, PROVIDER_NAMES, MODEL_SUGGESTIONS, REPLY_STYLES, ErrorHelper, AppError } from '../types';
 import { CustomStyleManager } from '../components/CustomStyleManager';
 import { TestResultModal } from '../components/TestResultModal';
-import { FlaskConical, Zap, Settings, ChevronDown, Eye, EyeOff, Link2, Database, Bug, Loader2, TestTube, AlertCircle } from 'lucide-react';
+import { Button, ButtonGroup } from '../components/Button';
+import { Input, Select, FormError } from '../components/Form';
+import { Tabs, TabPanel } from '../components/Tabs';
+import { colors, spacing, typography, borderRadius, shadows, transitions, container } from '../styles/design-tokens';
+import { injectGlobalStyles } from '../styles/global-styles';
+import { FlaskConical, Zap, Settings, Database, Bug, TestTube, AlertCircle } from 'lucide-react';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'config' | 'test' | 'customStyles'>('config');
   const [config, setConfig] = useState<AIConfig | null>(null);
-  const [testResult, setTestResult] = useState<string>('');
   const [showToast, setShowToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,11 +44,16 @@ function App() {
     model: 'Qwen/Qwen2.5-7B-Instruct',
   });
 
+  // 缓存用户的自定义API URL，防止切换下拉菜单时丢失
+  const [customApiUrlCache, setCustomApiUrlCache] = useState('');
+
   const [showToken, setShowToken] = useState(false);
   const [storageInfo, setStorageInfo] = useState<any>(null);
 
-  // 加载配置
+  // 注入全局样式和加载配置
   useEffect(() => {
+    // 注入全局样式确保设计系统生效
+    injectGlobalStyles();
     loadData();
   }, []);
 
@@ -72,13 +82,25 @@ function App() {
     let newFormData: AIConfig;
 
     if (provider === 'custom') {
+      // 如果切换到自定义，使用缓存的URL或保持当前输入的URL
+      const currentUrl = formData.apiUrl;
+      if (currentUrl && !Object.values(PROVIDER_URLS).includes(currentUrl)) {
+        // 如果当前URL不是预设URL，说明是用户输入的自定义URL，缓存它
+        setCustomApiUrlCache(currentUrl);
+      }
+
       newFormData = {
         provider,
-        apiUrl: '',
+        apiUrl: customApiUrlCache || currentUrl || '',
         apiToken: formData.apiToken,
         model: formData.model,
       };
     } else {
+      // 如果从自定义切换到预设provider，缓存当前的自定义URL
+      if (formData.provider === 'custom' && formData.apiUrl && !Object.values(PROVIDER_URLS).includes(formData.apiUrl)) {
+        setCustomApiUrlCache(formData.apiUrl);
+      }
+
       newFormData = {
         provider,
         apiUrl: PROVIDER_URLS[provider],
@@ -96,22 +118,33 @@ function App() {
     const validation = ConfigValidator.validateConfig(formData);
 
     if (!validation.valid) {
-      setTestResult(`❌ 配置验证失败:\n${validation.errors.join('\n')}`);
+      setShowToast({
+        message: `配置验证失败：${validation.errors[0]}`,
+        type: 'error'
+      });
+      setTimeout(() => setShowToast(null), 5000);
       return;
     }
 
     setIsSaving(true);
-    setTestResult('');
 
     try {
       await StorageService.setAIConfig(formData);
       setConfig(formData);
       await loadData();
 
-      setTestResult('✅ 配置已成功保存！');
+      setShowToast({
+        message: '✅ 配置已成功保存！',
+        type: 'success'
+      });
+      setTimeout(() => setShowToast(null), 3000);
     } catch (error: unknown) {
       const formattedError = ErrorHelper.formatForUser(error);
-      setTestResult(`❌ 保存失败:\n\n${formattedError}`);
+      setShowToast({
+        message: `保存失败：${formattedError.split('\n')[0]}`,
+        type: 'error'
+      });
+      setTimeout(() => setShowToast(null), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -209,12 +242,20 @@ function App() {
         apiToken: '',
         model: 'Qwen/Qwen2.5-7B-Instruct',
       });
-      setTestResult('✅ 配置已清除');
+      setShowToast({
+        message: '✅ 配置已清除',
+        type: 'success'
+      });
+      setTimeout(() => setShowToast(null), 3000);
       setActiveTab('config');
       await loadData();
     } catch (error: unknown) {
       const formattedError = ErrorHelper.formatForUser(error);
-      setTestResult(`❌ 清除失败:\n\n${formattedError}`);
+      setShowToast({
+        message: `清除失败：${formattedError.split('\n')[0]}`,
+        type: 'error'
+      });
+      setTimeout(() => setShowToast(null), 5000);
     }
   };
 
@@ -307,238 +348,203 @@ function App() {
   };
 
   return (
-    <div className="w-[440px]" style={{ backgroundColor: 'var(--color-bg-base)', display: 'flex', flexDirection: 'column', height: 'auto', minHeight: '600px', maxHeight: '80vh' }}>
-      {/* 极简克制头部 */}
-      <div style={{
-        background: 'var(--color-bg-elevated)',
-        borderBottom: `1px solid var(--color-border-divider)`,
-        padding: '16px 20px',
-        flexShrink: 0
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          width: '100%'
-        }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h1
-              style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                color: 'var(--color-text-primary)',
-                margin: 0,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              Twitter Reply Assistant
-            </h1>
-          </div>
-
-          {/* 连接状态指示器 */}
-          <div style={{
+    <div
+      className="extension-popup"
+      style={{
+        width: container.maxWidth,
+        minHeight: '580px', // 确保底部按钮始终可见
+        maxHeight: '85vh', // 适当增加最大高度
+        backgroundColor: colors.bg.primary,
+        borderRadius: borderRadius.lg,
+        boxShadow: shadows.xl,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        border: `1px solid ${colors.bg.border}`,
+        position: 'relative', // 添加相对定位作为Modal的定位上下文
+      }}
+    >
+      {/* 紧凑的头部 */}
+      <div
+        style={{
+          background: colors.bg.elevated,
+          borderBottom: `1px solid ${colors.bg.border}`,
+          padding: `${spacing[3]} ${spacing[5]}`,
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '4px 8px',
-            background: config ? 'rgba(95, 207, 128, 0.08)' : 'rgba(255, 179, 102, 0.08)',
-            border: `1px solid ${config ? 'rgba(95, 207, 128, 0.15)' : 'rgba(255, 179, 102, 0.15)'}`,
-            borderRadius: 'var(--radius-base)',
-            flexShrink: 0
-          }}>
-            <div style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: config ? 'var(--color-success)' : 'var(--color-warning)',
-              flexShrink: 0
-            }} />
-            <span style={{
-              fontSize: '10px',
-              fontWeight: 500,
-              color: config ? 'var(--color-success)' : 'var(--color-warning)',
-              whiteSpace: 'nowrap'
-            }}>
+            justifyContent: 'space-between',
+            width: '100%',
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing[2],
+              }}
+            >
+              <div
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: borderRadius.sm,
+                  background: `linear-gradient(135deg, ${colors.primary[500]} 0%, ${colors.primary[600]} 100%)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: shadows.sm,
+                }}
+              >
+                <Zap size={14} style={{ color: '#FFFFFF' }} />
+              </div>
+              <div>
+                <h1
+                  style={{
+                    fontSize: typography.fontSize.base,
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.primary,
+                    margin: 0,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Twitter Reply Assistant
+                </h1>
+                <p
+                  style={{
+                    fontSize: typography.fontSize.xs,
+                    color: colors.text.secondary,
+                    margin: 0,
+                    marginTop: '2px',
+                  }}
+                >
+                  {config ? `${PROVIDER_NAMES[config.provider]} 已连接` : '配置AI模型'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 简化的状态指示器 */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing[2],
+              padding: `${spacing[2]} ${spacing[3]}`,
+              background: config ? `${colors.success[500]}10` : `${colors.bg.border}`,
+              border: `1px solid ${config ? colors.success[500] + '20' : colors.bg.borderMedium}`,
+              borderRadius: borderRadius.full,
+              flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: config ? colors.success[500] : colors.text.muted,
+                animation: config ? 'pulse 2s infinite' : 'none',
+              }}
+            />
+            <span
+              style={{
+                fontSize: typography.fontSize.xs,
+                fontWeight: typography.fontWeight.medium,
+                color: config ? colors.success[500] : colors.text.secondary,
+                whiteSpace: 'nowrap',
+              }}
+            >
               {config ? PROVIDER_NAMES[config.provider] : '未配置'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* 标签导航 - 一行显示 */}
-      <div style={{
-        background: 'var(--color-bg-raised)',
-        borderBottom: `1px solid var(--color-border-divider)`,
-        padding: '12px 20px',
-        flexShrink: 0
-      }}>
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          width: '100%'
-        }}>
-          {[
-            { id: 'config', label: 'API 配置' },
-            { id: 'customStyles', label: '自定义' },
-            { id: 'test', label: '测试' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                fontSize: '11px',
-                fontWeight: 500,
-                borderRadius: 'var(--radius-base)',
-                background: activeTab === tab.id
-                  ? 'var(--color-primary)'
-                  : 'var(--color-bg-subtle)',
-                color: activeTab === tab.id
-                  ? '#F8F8FA'
-                  : 'var(--color-text-muted)',
-                border: 'none',
-                transition: 'all var(--transition-base)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {/* 标签导航 - 紧凑布局 */}
+      <div
+        style={{
+          background: colors.bg.secondary,
+          padding: `${spacing[1]} ${spacing[5]}`,
+          borderBottom: `1px solid ${colors.bg.border}`,
+          flexShrink: 0,
+        }}
+      >
+        <Tabs
+          items={[
+            { id: 'config', label: 'API 配置', icon: <Settings size={14} /> },
+            { id: 'customStyles', label: '自定义', icon: <FlaskConical size={14} /> },
+            { id: 'test', label: '测试', icon: <TestTube size={14} /> }
+          ]}
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as any)}
+          size="sm"
+        />
       </div>
 
       {/* 内容区域 */}
-      <div style={{
-        padding: '24px',
-        background: 'var(--color-bg-base)',
-        flex: 1,
-        overflowY: 'auto',
-        minWidth: 0,
-        paddingBottom: '32px'
-      }}>
+      <div
+        style={{
+          padding: `${spacing[4]} ${spacing[5]}`,
+          background: colors.bg.primary,
+          flex: 1,
+          overflowY: 'auto',
+          minWidth: 0,
+        }}
+      >
         {/* API 配置标签页 */}
-        {activeTab === 'config' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <TabPanel active={activeTab === 'config'} tabId="config">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[3] }}>
             {/* AI 提供商 */}
             <div>
-              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                AI 提供商
-              </h3>
-              <select
+              <Select
+                label="AI 提供商"
                 value={formData.provider}
                 onChange={(e) => handleProviderChange(e.target.value as AIProvider)}
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  padding: '0 36px 0 12px',
-                  fontSize: '14px',
-                  background: 'var(--color-bg-surface)',
-                  border: `1px solid var(--color-border-light)`,
-                  borderRadius: '8px',
-                  color: 'var(--color-text-primary)',
-                  transition: 'all var(--transition-base)',
-                  cursor: 'pointer',
-                  boxSizing: 'border-box',
-                  appearance: 'none',
-                  backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 12px center',
-                  backgroundSize: '16px'
-                }}
-              >
-                {(['siliconflow', 'deepseek', 'glm', 'custom'] as AIProvider[]).map(
-                  (provider) => (
-                    <option key={provider} value={provider}>
-                      {PROVIDER_NAMES[provider]}
-                    </option>
-                  )
-                )}
-              </select>
+                helpText={`选择您的 AI 服务提供商，将从 ${PROVIDER_NAMES[formData.provider]} 获取模型`}
+                options={[
+                  { value: 'siliconflow', label: 'SiliconFlow' },
+                  { value: 'deepseek', label: 'DeepSeek' },
+                  { value: 'glm', label: 'GLM' },
+                  { value: 'custom', label: '自定义' },
+                ]}
+              />
             </div>
 
-            {/* 极简 API Token 输入 */}
+            {/* API Token 输入 */}
             <div>
-              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                API Token
-              </h3>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showToken ? 'text' : 'password'}
-                  value={formData.apiToken}
-                  onChange={(e) =>
-                    setFormData({ ...formData, apiToken: e.target.value })
-                  }
-                  placeholder="sk-xxxx..."
-                  style={{
-                    width: '100%',
-                    height: '36px',
-                    padding: '0 40px 0 12px',
-                    fontSize: '13px',
-                    fontFamily: 'monospace',
-                    background: 'var(--color-bg-surface)',
-                    border: `1px solid var(--color-border-light)`,
-                    borderRadius: 'var(--radius-base)',
-                    color: 'var(--color-text-primary)',
-                    transition: 'all var(--transition-base)',
-                    boxSizing: 'border-box'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowToken(!showToken)}
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: '8px',
-                    transform: 'translateY(-50%)',
-                    padding: '4px',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {showToken ? (
-                    <EyeOff size={14} style={{ color: 'var(--color-text-muted)' }} />
-                  ) : (
-                    <Eye size={14} style={{ color: 'var(--color-text-muted)' }} />
-                  )}
-                </button>
-              </div>
-              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
-                从 {PROVIDER_NAMES[formData.provider]} 获取您的 API Token
-              </p>
+              <Input
+                label="API Token"
+                type="password"
+                value={formData.apiToken}
+                onChange={(e) => setFormData({ ...formData, apiToken: e.target.value })}
+                placeholder="sk-xxxx..."
+                showPasswordToggle={true}
+                helpText={`从 ${PROVIDER_NAMES[formData.provider]} 官网获取您的 API Token`}
+                leftIcon={<Database size={16} />}
+                error={!formData.apiToken}
+                errorMessage={formData.apiToken ? undefined : '请输入 API Token'}
+              />
             </div>
 
-            {/* 极简模型选择 */}
+            {/* 模型选择 */}
             <div>
-              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                模型名称
-              </h3>
-              <input
-                list="model-suggestions"
+              <Input
+                label="模型名称"
                 value={formData.model}
-                onChange={(e) =>
-                  setFormData({ ...formData, model: e.target.value })
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                placeholder="输入或选择模型名称"
+                helpText={
+                  formData.provider === 'custom'
+                    ? '输入自定义模型名称'
+                    : `从下拉列表选择 ${PROVIDER_NAMES[formData.provider]} 支持的模型`
                 }
-                placeholder="输入或选择模型"
-                style={{
-                  width: '100%',
-                  height: '36px',
-                  padding: '0 12px',
-                  fontSize: '13px',
-                  background: 'var(--color-bg-surface)',
-                  border: `1px solid var(--color-border-light)`,
-                  borderRadius: 'var(--radius-base)',
-                  color: 'var(--color-text-primary)',
-                  transition: 'all var(--transition-base)',
-                  boxSizing: 'border-box'
-                }}
+                error={!formData.model}
+                errorMessage={formData.model ? undefined : '请输入模型名称'}
               />
               <datalist id="model-suggestions">
                 {formData.provider !== 'custom' &&
@@ -550,321 +556,277 @@ function App() {
 
             {/* 自定义 URL */}
             {formData.provider === 'custom' && (
-              <div style={{
-                padding: '12px',
-                background: 'rgba(107, 127, 255, 0.05)',
-                border: `1px solid rgba(107, 127, 255, 0.2)`,
-                borderRadius: 'var(--radius-base)'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '4px'
-                }}>
-                  <Link2 size={16} style={{ color: 'var(--color-primary)' }} />
-                  <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
-                    API URL
-                  </h3>
-                </div>
-                <input
-                  type="url"
-                  value={formData.apiUrl}
-                  onChange={(e) =>
-                    setFormData({ ...formData, apiUrl: e.target.value })
-                  }
-                  placeholder="https://api.example.com/v1/chat/completions"
-                  style={{
-                    width: '100%',
-                    height: '36px',
-                    padding: '0 12px',
-                    fontSize: '13px',
-                    background: 'var(--color-bg-surface)',
-                    boxSizing: 'border-box',
-                    border: `1px solid var(--color-primary)`,
-                    borderRadius: 'var(--radius-base)',
-                    color: 'var(--color-text-primary)',
-                    transition: 'all var(--transition-base)',
-                    marginBottom: '4px'
-                  }}
-                />
-                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}>
-                  <AlertCircle size={12} />
-                  需要兼容 OpenAI Chat Completions API 格式
-                </p>
-              </div>
-            )}
-
-            {/* 操作按钮 */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: config ? '1fr 1fr 1fr' : '1fr 1fr',
-              gap: '12px'
-            }}>
-              <button
-                onClick={testAPI}
-                disabled={isLoading || isSaving}
+              <div
                 style={{
-                  height: '36px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  borderRadius: 'var(--radius-base)',
-                  border: '1px solid var(--color-accent)',
-                  background: 'var(--color-accent)',
-                  color: '#F8F8FA',
-                  cursor: isLoading || isSaving ? 'not-allowed' : 'pointer',
-                  opacity: isLoading || isSaving ? 0.6 : 1,
-                  transition: 'all var(--transition-base)'
+                  padding: spacing[4],
+                  background: `${colors.primary[500]}10`,
+                  border: `1px solid ${colors.primary[500]}30`,
+                  borderRadius: borderRadius.md,
                 }}
               >
-                {isLoading ? '测试中...' : '测试连接'}
-              </button>
-              <button
-                onClick={saveConfig}
-                disabled={isLoading || isSaving}
-                style={{
-                  height: '36px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  borderRadius: 'var(--radius-base)',
-                  border: '1px solid var(--color-primary)',
-                  background: 'var(--color-primary)',
-                  color: '#F8F8FA',
-                  cursor: isLoading || isSaving ? 'not-allowed' : 'pointer',
-                  opacity: isLoading || isSaving ? 0.6 : 1,
-                  transition: 'all var(--transition-base)'
-                }}
-              >
-                {isSaving ? '保存中...' : '应用'}
-              </button>
-              {config && (
-                <button
-                  onClick={clearConfig}
+                <div
                   style={{
-                    height: '36px',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    borderRadius: 'var(--radius-base)',
-                    border: '1px solid var(--color-border-light)',
-                    background: 'var(--color-bg-elevated)',
-                    color: 'var(--color-text-secondary)',
-                    cursor: 'pointer',
-                    transition: 'all var(--transition-base)'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing[2],
+                    marginBottom: spacing[3],
                   }}
                 >
-                  取消
-                </button>
-              )}
-            </div>
-
-            {/* 测试结果 */}
-            {testResult && (
-              <div style={{
-                padding: '12px',
-                background: 'var(--color-bg-elevated)',
-                borderRadius: 'var(--radius-base)',
-                border: `1px solid var(--color-border-light)`
-              }}>
-                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                  测试结果
-                </h3>
-                <pre style={{
-                  fontSize: '11px',
-                  color: 'var(--color-text-secondary)',
-                  whiteSpace: 'pre-wrap',
-                  fontFamily: 'monospace',
-                  lineHeight: 1.4,
-                  margin: 0,
-                  padding: '8px',
-                  backgroundColor: 'var(--color-bg-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: `1px solid var(--color-border-light)`
-                }}>
-                  {testResult}
-                </pre>
+                  <Database size={16} style={{ color: colors.primary[500] }} />
+                  <h3
+                    style={{
+                      fontSize: typography.fontSize.sm,
+                      fontWeight: typography.fontWeight.semibold,
+                      color: colors.text.primary,
+                      margin: 0,
+                    }}
+                  >
+                    自定义 API 端点
+                  </h3>
+                </div>
+                <Input
+                  type="url"
+                  value={formData.apiUrl}
+                  onChange={(e) => {
+                  const newUrl = e.target.value;
+                  setFormData({ ...formData, apiUrl: newUrl });
+                  // 实时更新缓存，防止切换时丢失
+                  if (newUrl && !Object.values(PROVIDER_URLS).includes(newUrl)) {
+                    setCustomApiUrlCache(newUrl);
+                  }
+                }}
+                  placeholder="https://api.example.com/v1/chat/completions"
+                  helpText="需要兼容 OpenAI Chat Completions API 格式"
+                  error={!formData.apiUrl}
+                  errorMessage={formData.apiUrl ? undefined : '请输入有效的 API URL'}
+                />
               </div>
             )}
-          </div>
-        )}
 
-  
+            {/* 操作按钮组 */}
+            <div style={{ marginTop: spacing[2] }}>
+              <ButtonGroup fullWidth spacing={3}>
+                <Button
+                  variant="outline"
+                  onClick={testAPI}
+                  disabled={isLoading || isSaving}
+                  loading={isLoading}
+                  size="md"
+                  style={{ flex: 1 }}
+                >
+                  测试连接
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={saveConfig}
+                  disabled={isLoading || isSaving}
+                  loading={isSaving}
+                  size="md"
+                  style={{ flex: 1 }}
+                >
+                  应用配置
+                </Button>
+                {config && (
+                  <Button
+                    variant="ghost"
+                    onClick={clearConfig}
+                    size="md"
+                    style={{ flex: 1 }}
+                  >
+                    清除
+                  </Button>
+                )}
+              </ButtonGroup>
+            </div>
+
+                        </div>
+        </TabPanel>
+
         {/* 自定义风格标签页 */}
-        {activeTab === 'customStyles' && (
+        <TabPanel active={activeTab === 'customStyles'} tabId="customStyles">
           <CustomStyleManager key="custom-styles" />
-        )}
+        </TabPanel>
 
         {/* 测试标签页 */}
-        {activeTab === 'test' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div className="modern-card" style={{
-            background: 'var(--color-bg-elevated)',
-            border: `1px solid var(--color-primary)`,
-            padding: '12px'
-          }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '12px'
-              }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: 'var(--radius-base)',
+        <TabPanel active={activeTab === 'test'} tabId="test">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[3] }}>
+            {/* 功能介绍卡片 */}
+            <div
+              style={{
+                padding: spacing[4],
+                background: `linear-gradient(135deg, ${colors.primary[500]}15 0%, ${colors.primary[500]}05 100%)`,
+                border: `1px solid ${colors.primary[500]}30`,
+                borderRadius: borderRadius.md,
+              }}
+            >
+              <div
+                style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  background: 'var(--color-primary)',
-                  opacity: 0.15
-                }}>
-                  <TestTube
-                    size={16}
-                    style={{ color: 'var(--color-primary)' }}
-                  />
+                  alignItems: 'flex-start',
+                  gap: spacing[3],
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: borderRadius.md,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    background: `linear-gradient(135deg, ${colors.primary[500]} 0%, ${colors.primary[600]} 100%)`,
+                    boxShadow: shadows.sm,
+                  }}
+                >
+                  <TestTube size={18} style={{ color: '#FFFFFF' }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: 'var(--color-text-primary)',
-                    marginBottom: '4px',
-                    marginTop: '0'
-                  }}>功能测试工具</p>
-                  <p style={{
-                    fontSize: '11px',
-                    color: 'var(--color-text-secondary)',
-                    margin: 0
-                  }}>
-                    验证当前配置是否能正常生成回复
+                  <h3
+                    style={{
+                      fontSize: typography.fontSize.base,
+                      fontWeight: typography.fontWeight.semibold,
+                      color: colors.text.primary,
+                      marginBottom: spacing[1],
+                      marginTop: 0,
+                    }}
+                  >
+                    功能测试工具
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: typography.fontSize.sm,
+                      color: colors.text.secondary,
+                      margin: 0,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    验证当前配置是否能正常生成 AI 回复
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* 风格选择器 */}
+            {/* 风格选择 */}
             <div>
-              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
-                选择回复风格
-              </h3>
-              <select
+              <Select
+                label="选择回复风格"
                 value={testStyle}
                 onChange={(e) => setTestStyle(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  padding: '0 36px 0 12px',
-                  fontSize: '14px',
-                  background: 'var(--color-bg-surface)',
-                  border: `1px solid var(--color-border-light)`,
-                  borderRadius: '8px',
-                  color: 'var(--color-text-primary)',
-                  transition: 'all var(--transition-base)',
-                  cursor: 'pointer',
-                  boxSizing: 'border-box',
-                  appearance: 'none',
-                  backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 12px center',
-                  backgroundSize: '16px'
-                }}
-              >
-                {REPLY_STYLES.map((style) => (
-                  <option key={style.id} value={style.id}>
-                    {style.icon} {style.name}
-                  </option>
-                ))}
-              </select>
+                helpText="选择要测试的回复风格，不同风格会有不同的生成效果"
+                options={REPLY_STYLES.map((style) => ({
+                  value: style.id,
+                  label: `${style.icon} ${style.name}`,
+                }))}
+              />
             </div>
 
             {/* 系统提示词预览 */}
             <div>
-              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
-                系统提示词
+              <h3
+                style={{
+                  fontSize: typography.fontSize.sm,
+                  fontWeight: typography.fontWeight.semibold,
+                  color: colors.text.primary,
+                  marginBottom: spacing[3],
+                }}
+              >
+                系统提示词预览
               </h3>
-              <div style={{
-                padding: '12px',
-                background: 'var(--color-bg-elevated)',
-                border: `1px solid var(--color-border-light)`,
-                borderRadius: '8px'
-              }}>
-                <p style={{
-                  fontSize: '12px',
-                  color: 'var(--color-text-secondary)',
-                  lineHeight: 1.5,
-                  margin: 0,
-                  whiteSpace: 'pre-wrap'
-                }}>
-                  {REPLY_STYLES.find(s => s.id === testStyle)?.systemPrompt}
+              <div
+                style={{
+                  padding: spacing[4],
+                  background: colors.bg.elevated,
+                  border: `1px solid ${colors.bg.borderLight}`,
+                  borderRadius: borderRadius.md,
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: typography.fontSize.xs,
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.tertiary,
+                    marginBottom: spacing[2],
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing[2],
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      background: colors.primary[500],
+                      borderRadius: '50%',
+                      opacity: 0.8,
+                    }}
+                  />
+                  {REPLY_STYLES.find((s) => s.id === testStyle)?.name}
+                </div>
+                <p
+                  style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                    lineHeight: 1.6,
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {REPLY_STYLES.find((s) => s.id === testStyle)?.systemPrompt}
                 </p>
               </div>
             </div>
 
-            <button
+            {/* 测试按钮 */}
+            <Button
+              variant="primary"
               onClick={testAIGeneration}
               disabled={isLoading || !config}
-              className="modern-btn accent w-full"
-              style={{ padding: '12px 16px' }}
+              loading={isLoading}
+              size="lg"
+              fullWidth
+              leftIcon={<TestTube size={16} />}
             >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 size={14} className="animate-spin" style={{ color: 'currentColor' }} />
-                  <span>测试中...</span>
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <TestTube size={14} />
-                  <span>测试生成回复</span>
-                </span>
-              )}
-            </button>
+              {isLoading ? '测试中...' : '测试生成回复'}
+            </Button>
 
+            {/* 配置警告 */}
             {!config && !formData.apiToken && (
-              <div className="modern-card" style={{
-                background: 'var(--color-warning)',
-                border: `1px solid var(--color-warning)`,
-                padding: '12px'
-              }}>
-                <p className="text-xs flex items-center gap-2" style={{ color: '#F5F5F7' }}>
-                  <AlertCircle
-                    size={14}
-                    style={{ color: '#F5F5F7', minWidth: 14, minHeight: 14 }}
-                  />
-                  <span>请先配置 API Token</span>
-                </p>
-              </div>
-            )}
-
-            {testResult && (
-              <div className="modern-card" style={{ padding: '12px' }}>
-                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }} className="flex items-center gap-2">
-                  <Bug
-                    size={16}
-                    style={{ color: 'var(--color-primary)', minWidth: 16, minHeight: 16 }}
-                  />
-                  <span>测试结果</span>
-                </h3>
-                <pre style={{
-                  fontSize: '11px',
-                  color: 'var(--color-text-secondary)',
-                  whiteSpace: 'pre-wrap',
-                  fontFamily: 'monospace',
-                  lineHeight: 1.4,
-                  margin: 0,
-                  padding: '8px',
-                  backgroundColor: 'var(--color-bg-subtle)',
-                  borderRadius: 'var(--radius-base)',
-                  border: `1px solid var(--color-border-light)`,
-                  wordWrap: 'break-word',
-                  overflowWrap: 'break-word',
-                  overflowX: 'hidden',
-                  maxWidth: '100%'
-                }}>
-                  {testResult}
-                </pre>
+              <div
+                style={{
+                  padding: spacing[3] + spacing[1],
+                  background: `${colors.warning[500]}15`,
+                  border: `1px solid ${colors.warning[500]}30`,
+                  borderRadius: borderRadius.base,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing[2],
+                  }}
+                >
+                  <AlertCircle size={14} style={{ color: colors.warning[500] }} />
+                  <span
+                    style={{
+                      fontSize: typography.fontSize.sm,
+                      color: colors.warning[500],
+                      fontWeight: typography.fontWeight.medium,
+                    }}
+                  >
+                    请先配置 API Token 才能进行测试
+                  </span>
+                </div>
               </div>
             )}
           </div>
-        )}
+        </TabPanel>
       </div>
 
       {/* Toast 提示 */}
@@ -872,53 +834,69 @@ function App() {
         <div
           style={{
             position: 'fixed',
-            top: '20px',
-            right: '20px',
-            zIndex: 10000,
-            maxWidth: '300px',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: 500,
-            color: showToast.type === 'success' ? '#F8F8FA' : '#F8F8FA',
-            background: showToast.type === 'success' ? 'var(--color-success)' : 'var(--color-error)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            animation: 'slideInRight 0.3s ease-out',
+            top: spacing[5],
+            right: spacing[5],
+            zIndex: 999,
+            maxWidth: '320px',
+            padding: `${spacing[3]} ${spacing[4]}`,
+            borderRadius: borderRadius.md,
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.medium,
+            color: '#FFFFFF',
+            background: showToast.type === 'success' ? colors.success[500] : colors.error[500],
+            boxShadow: shadows.lg,
+            animation: 'slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: spacing[2],
+            backdropFilter: 'blur(8px)',
           }}
         >
-          <div style={{
-            width: '16px',
-            height: '16px',
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <span style={{ fontSize: '10px', lineHeight: 1 }}>
-              {showToast.type === 'success' ? '✓' : '!'}
-            </span>
-          </div>
-          <span>{showToast.message}</span>
-          <button
-            onClick={() => setShowToast(null)}
+          <div
             style={{
               width: '20px',
               height: '20px',
-              background: 'rgba(255, 255, 255, 0.2)',
-              border: 'none',
               borderRadius: '50%',
-              color: '#F8F8FA',
+              background: 'rgba(255, 255, 255, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                fontSize: typography.fontSize.sm,
+                lineHeight: 1,
+                fontWeight: typography.fontWeight.semibold,
+              }}
+            >
+              {showToast.type === 'success' ? '✓' : '!'}
+            </span>
+          </div>
+          <span style={{ flex: 1, minWidth: 0 }}>{showToast.message}</span>
+          <button
+            onClick={() => setShowToast(null)}
+            style={{
+              width: '24px',
+              height: '24px',
+              background: 'rgba(255, 255, 255, 0.15)',
+              border: 'none',
+              borderRadius: borderRadius.full,
+              color: '#FFFFFF',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginLeft: '8px',
-              flexShrink: 0
+              marginLeft: spacing[2],
+              flexShrink: 0,
+              transition: `all ${transitions.duration.fast} ${transitions.easing.easeOut}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
             }}
           >
             ×
@@ -926,7 +904,76 @@ function App() {
         </div>
       )}
 
-      {/* 无底部状态栏，避免重叠 */}
+      {/* CSS 动画样式 */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes slideInRight {
+              from {
+                transform: translateX(100%);
+                opacity: 0;
+              }
+              to {
+                transform: translateX(0);
+                opacity: 1;
+              }
+            }
+
+            @keyframes slideInUp {
+              from {
+                transform: translateY(20px);
+                opacity: 0;
+              }
+              to {
+                transform: translateY(0);
+                opacity: 1;
+              }
+            }
+
+            @keyframes slideInDown {
+              from {
+                transform: translateY(-20px);
+                opacity: 0;
+              }
+              to {
+                transform: translateY(0);
+                opacity: 1;
+              }
+            }
+
+            @keyframes fadeIn {
+              from {
+                opacity: 0;
+              }
+              to {
+                opacity: 1;
+              }
+            }
+
+            @keyframes pulse {
+              0%, 100% {
+                opacity: 1;
+              }
+              50% {
+                opacity: 0.5;
+              }
+            }
+
+            @keyframes spin {
+              from {
+                transform: rotate(0deg);
+              }
+              to {
+                transform: rotate(360deg);
+              }
+            }
+
+            .animate-spin {
+              animation: spin 1s linear infinite;
+            }
+          `,
+        }}
+      />
 
       {/* 测试结果浮层 */}
       <TestResultModal

@@ -1,5 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, CheckCircle, XCircle, Loader2, Copy, ExternalLink } from 'lucide-react';
+import { Z_INDEX } from '../utils/popup-position';
+import { colors, spacing, borderRadius, shadows } from '../styles/design-tokens';
 
 interface TestResultModalProps {
   isOpen: boolean;
@@ -19,6 +22,17 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
   onClose,
   testResult
 }) => {
+  // 检测是否在popup环境中
+  const [isPopupContext, setIsPopupContext] = useState(false);
+  
+  useEffect(() => {
+    // 更精确的检测方式：检查URL中是否有popup参数
+    const isPopup = window.location.search.includes('popup') || 
+                   window.location.pathname.includes('popup') ||
+                   window.innerWidth < 400;
+    setIsPopupContext(isPopup);
+  }, []);
+  
   // 键盘事件处理
   useEffect(() => {
     if (!isOpen) return;
@@ -32,66 +46,6 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
-
-  // 计算浮层显示位置
-  const getModalPosition = () => {
-    if (!isOpen) return {};
-
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
-    const modalMaxHeight = viewportHeight * 0.7;
-
-    // 检查是否在小屏幕上（移动设备或小窗口）
-    const isSmallScreen = viewportHeight < 600 || viewportWidth < 500;
-
-    if (isSmallScreen) {
-      // 小屏幕上居中显示
-      return {
-        position: 'fixed' as const,
-        top: '50%',
-        bottom: 'auto',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        maxHeight: '90vh',
-      };
-    }
-
-    // 获取鼠标位置或popup中心位置
-    const popupCenter = viewportHeight / 2;
-
-    // 如果popup在屏幕上半部分，向下显示
-    if (popupCenter < viewportHeight * 0.4) {
-      return {
-        position: 'fixed' as const,
-        top: '60%',
-        bottom: 'auto',
-        left: '50%',
-        transform: 'translate(-50%, 0)',
-        maxHeight: `${viewportHeight * 0.4}px`,
-      };
-    }
-    // 如果popup在屏幕下半部分，向上显示
-    else if (popupCenter > viewportHeight * 0.6) {
-      return {
-        position: 'fixed' as const,
-        top: 'auto',
-        bottom: '20%',
-        left: '50%',
-        transform: 'translate(-50%, 0)',
-        maxHeight: `${viewportHeight * 0.4}px`,
-      };
-    }
-    // 默认居中显示
-    else {
-      return {
-        position: 'fixed' as const,
-        top: '50%',
-        bottom: 'auto',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-      };
-    }
-  };
 
   if (!isOpen || !testResult) return null;
 
@@ -173,7 +127,344 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
     }
   };
 
-  return (
+  // 在popup中的简化版本 - 适配popup窗口尺寸
+  if (isPopupContext) {
+    // 获取popup窗口的实际尺寸
+    const popupWidth = Math.max(window.innerWidth, 360); // 确保最小宽度
+    const popupHeight = Math.max(window.innerHeight, 500); // 确保最小高度
+    
+    return createPortal(
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          animation: 'fadeIn 0.2s ease-out',
+        }}
+        onClick={onClose}
+      >
+        <div
+          style={{
+            width: popupWidth - 32, // 减去padding
+            height: popupHeight - 32, // 减去padding
+            maxWidth: popupWidth - 32,
+            maxHeight: popupHeight - 32,
+            backgroundColor: getBackgroundColor(),
+            borderRadius: borderRadius.lg,
+            boxShadow: shadows.xl,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            animation: 'slideInUp 0.2s ease-out',
+            border: `2px solid ${getBorderColor()}`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* 头部 */}
+          <div
+            style={{
+              padding: spacing[3], // 减小padding以适应小屏幕
+              borderBottom: `1px solid ${colors.bg.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing[3],
+            }}>
+              <div style={{ 
+                width: '32px', // 减小尺寸以适应小屏幕
+                height: '32px',
+                borderRadius: borderRadius.md,
+                backgroundColor: colors.bg.elevated,
+                border: `2px solid ${getBorderColor()}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: getIconColor()
+              }}>
+                {getIcon()}
+              </div>
+              <h3 style={{
+                fontSize: '16px', // 减小字体大小
+                fontWeight: 600,
+                color: colors.text.primary,
+                margin: 0,
+              }}>
+                {testResult.title}
+              </h3>
+            </div>
+
+            <button
+              onClick={onClose}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: borderRadius.full,
+                border: 'none',
+                backgroundColor: colors.bg.elevated,
+                color: colors.text.secondary,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease-out',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = colors.bg.surface;
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = colors.bg.elevated;
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <X size={14} /> {/* 减小图标尺寸 */}
+            </button>
+          </div>
+
+          {/* 内容区域 */}
+          <div
+            style={{
+              padding: spacing[3], // 减小padding以适应小屏幕
+              flex: 1,
+              overflow: 'auto',
+            }}
+          >
+            {/* 主要消息 */}
+            <div
+              style={{
+                fontSize: '14px',
+                color: colors.text.primary,
+                lineHeight: 1.5,
+                marginBottom: spacing[4],
+              }}
+            >
+              {testResult.message}
+            </div>
+
+            {testResult.latency && (
+              <p
+                style={{
+                  fontSize: '12px',
+                  color: colors.text.tertiary,
+                  margin: `2px 0 ${spacing[4]} 0`,
+                }}
+              >
+                响应时间: {testResult.latency}ms
+              </p>
+            )}
+
+            {/* 详细信息 */}
+            {testResult.details && (
+              <div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: spacing[2],
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: colors.text.tertiary,
+                      margin: 0,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    详细信息
+                  </h3>
+                  <button
+                    data-copy-btn
+                    onClick={() => copyToClipboard(testResult.details!)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing[1],
+                      padding: `${spacing[1]} ${spacing[2]}`,
+                      fontSize: '11px',
+                      color: colors.text.tertiary,
+                      backgroundColor: colors.bg.secondary,
+                      border: `1px solid ${colors.bg.border}`,
+                      borderRadius: borderRadius.sm,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.bg.surface;
+                      e.currentTarget.style.color = colors.text.secondary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.bg.secondary;
+                      e.currentTarget.style.color = colors.text.tertiary;
+                    }}
+                  >
+                    <Copy size={10} />
+                    复制
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    backgroundColor: colors.bg.surface,
+                    border: `1px solid ${colors.bg.border}`,
+                    borderRadius: borderRadius.md,
+                    padding: spacing[3],
+                  }}
+                >
+                  <pre
+                    style={{
+                      fontSize: '11px',
+                      color: colors.text.tertiary,
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'monospace',
+                      lineHeight: 1.4,
+                      margin: 0,
+                      wordWrap: 'break-word',
+                    }}
+                  >
+                    {testResult.details}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* 原始数据（JSON格式） */}
+            {testResult.rawData && (
+              <div style={{ marginTop: spacing[4] }}>
+                <h3
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: colors.text.tertiary,
+                    margin: `0 0 ${spacing[2]} 0`,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  原始响应数据
+                </h3>
+
+                <div
+                  style={{
+                    backgroundColor: colors.bg.surface,
+                    border: `1px solid ${colors.bg.border}`,
+                    borderRadius: borderRadius.md,
+                    padding: spacing[3],
+                    maxHeight: '150px', // 减小最大高度以适应popup
+                    overflowY: 'auto',
+                  }}
+                >
+                  <pre
+                    style={{
+                      fontSize: '10px',
+                      color: colors.text.muted,
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'monospace',
+                      lineHeight: 1.3,
+                      margin: 0,
+                      wordWrap: 'break-word',
+                    }}
+                  >
+                    {JSON.stringify(testResult.rawData, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 底部按钮区域 */}
+          <div
+            style={{
+              padding: `${spacing[3]} ${spacing[4]} ${spacing[4]} ${spacing[4]}`, // 减小padding
+              borderTop: `1px solid ${colors.bg.border}`,
+              flexShrink: 0,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: spacing[2], // 减小gap
+            }}
+          >
+            {testResult.type === 'success' && (
+              <button
+                onClick={() => {
+                  // 可以添加"在新标签页中查看详细结果"的功能
+                  window.open('data:text/plain;charset=utf-8,' + encodeURIComponent(testResult.details || ''), '_blank');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: `${spacing[2]} ${spacing[4]}`,
+                  fontSize: '12px',
+                  color: colors.text.tertiary,
+                  backgroundColor: colors.bg.secondary,
+                  border: `1px solid ${colors.bg.border}`,
+                  borderRadius: borderRadius.sm,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = colors.bg.surface;
+                  e.currentTarget.style.color = colors.text.secondary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = colors.bg.secondary;
+                  e.currentTarget.style.color = colors.text.tertiary;
+                }}
+              >
+                <ExternalLink size={12} />
+                新窗口查看
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              style={{
+                padding: `${spacing[2]} ${spacing[5]}`,
+                fontSize: '12px',
+                fontWeight: 500,
+                color: '#F8F8FA',
+                backgroundColor: testResult.type === 'success' ? colors.success[500] : colors.primary[500],
+                border: 'none',
+                borderRadius: borderRadius.sm,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = shadows.md;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      </div>, document.body
+    );
+  }
+
+  // 在content script中使用Portal版本
+  return createPortal(
     <div
       className="modal-backdrop"
       style={{
@@ -182,11 +473,15 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        zIndex: 10000,
-        padding: '20px',
-        backdropFilter: 'blur(2px)',
-        WebkitBackdropFilter: 'blur(2px)',
+        backgroundColor: `rgba(0, 0, 0, 0.6)`,
+        zIndex: Z_INDEX.MODAL,
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: spacing[4],
+        animation: 'fadeIn 0.2s ease-out',
       }}
       onClick={onClose}
     >
@@ -194,69 +489,56 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
         className="modal-content"
         style={{
           width: '100%',
-          maxWidth: '500px',
-          backgroundColor: 'var(--color-bg-surface)',
-          border: `2px solid ${getBorderColor()}`,
-          borderRadius: '12px',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+          maxWidth: "500px",
+          maxHeight: '90vh',
+          backgroundColor: getBackgroundColor(),
+          borderRadius: borderRadius.lg,
+          boxShadow: shadows.xl,
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          ...getModalPosition(),
+          animation: 'slideInUp 0.2s ease-out',
+          border: `2px solid ${getBorderColor()}`,
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头部 */}
         <div
           style={{
-            padding: '20px 20px 16px 20px',
-            borderBottom: `1px solid var(--color-border-medium)`,
+            padding: `${spacing[5]} ${spacing[6]} ${spacing[4]} ${spacing[6]}`,
+            borderBottom: `1px solid ${colors.bg.border}`,
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            justifyContent: 'space-between',
+            flexShrink: 0,
           }}
         >
-          <div
-            style={{
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing[3],
+          }}>
+            <div style={{ 
               width: '40px',
               height: '40px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--color-bg-surface)',
+              borderRadius: borderRadius.md,
+              backgroundColor: colors.bg.elevated,
               border: `2px solid ${getBorderColor()}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <div className={testResult.type === 'success' ? 'success-icon' : testResult.type === 'error' ? 'error-icon' : ''} style={{ color: getIconColor() }}>
+              color: getIconColor()
+            }}>
               {getIcon()}
             </div>
-          </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h2
-              style={{
-                fontSize: '16px',
-                fontWeight: 600,
-                color: 'var(--color-text-primary)',
-                margin: 0,
-                lineHeight: 1.2,
-              }}
-            >
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 600,
+              color: colors.text.primary,
+              margin: 0,
+            }}>
               {testResult.title}
-            </h2>
-            {testResult.latency && (
-              <p
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--color-text-secondary)',
-                  margin: '2px 0 0 0',
-                }}
-              >
-                响应时间: {testResult.latency}ms
-              </p>
-            )}
+            </h3>
           </div>
 
           <button
@@ -264,51 +546,60 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
             style={{
               width: '32px',
               height: '32px',
-              borderRadius: '8px',
-              border: '1px solid var(--color-border-medium)',
-              backgroundColor: 'var(--color-bg-elevated)',
-              color: 'var(--color-text-secondary)',
+              borderRadius: borderRadius.full,
+              border: 'none',
+              backgroundColor: colors.bg.elevated,
+              color: colors.text.secondary,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'all 0.2s',
-              flexShrink: 0,
+              transition: 'all 0.2s ease-out',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--color-bg-surface)';
-              e.currentTarget.style.color = 'var(--color-text-primary)';
-              e.currentTarget.style.borderColor = getBorderColor();
+              e.currentTarget.style.backgroundColor = colors.bg.surface;
+              e.currentTarget.style.transform = 'scale(1.05)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--color-bg-elevated)';
-              e.currentTarget.style.color = 'var(--color-text-secondary)';
-              e.currentTarget.style.borderColor = 'var(--color-border-medium)';
+              e.currentTarget.style.backgroundColor = colors.bg.elevated;
+              e.currentTarget.style.transform = 'scale(1)';
             }}
           >
             <X size={16} />
           </button>
         </div>
 
-        {/* 内容 */}
+        {/* 内容区域 */}
         <div
           style={{
-            padding: '20px',
+            padding: spacing[6],
             flex: 1,
-            overflowY: 'auto',
+            overflow: 'auto',
           }}
         >
           {/* 主要消息 */}
           <div
             style={{
               fontSize: '14px',
-              color: 'var(--color-text-primary)',
+              color: colors.text.primary,
               lineHeight: 1.5,
-              marginBottom: '16px',
+              marginBottom: spacing[4],
             }}
           >
             {testResult.message}
           </div>
+
+          {testResult.latency && (
+            <p
+              style={{
+                fontSize: '12px',
+                color: colors.text.tertiary,
+                margin: `2px 0 ${spacing[4]} 0`,
+              }}
+            >
+              响应时间: {testResult.latency}ms
+            </p>
+          )}
 
           {/* 详细信息 */}
           {testResult.details && (
@@ -318,14 +609,14 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '8px',
+                  marginBottom: spacing[2],
                 }}
               >
                 <h3
                   style={{
                     fontSize: '12px',
                     fontWeight: 600,
-                    color: 'var(--color-text-secondary)',
+                    color: colors.text.tertiary,
                     margin: 0,
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
@@ -339,23 +630,23 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 8px',
+                    gap: spacing[1],
+                    padding: `${spacing[1]} ${spacing[2]}`,
                     fontSize: '11px',
-                    color: 'var(--color-text-muted)',
-                    backgroundColor: 'var(--color-bg-subtle)',
-                    border: '1px solid var(--color-border-light)',
-                    borderRadius: '6px',
+                    color: colors.text.tertiary,
+                    backgroundColor: colors.bg.secondary,
+                    border: `1px solid ${colors.bg.border}`,
+                    borderRadius: borderRadius.sm,
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--color-bg-elevated)';
-                    e.currentTarget.style.color = 'var(--color-text-primary)';
+                    e.currentTarget.style.backgroundColor = colors.bg.surface;
+                    e.currentTarget.style.color = colors.text.secondary;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--color-bg-subtle)';
-                    e.currentTarget.style.color = 'var(--color-text-muted)';
+                    e.currentTarget.style.backgroundColor = colors.bg.secondary;
+                    e.currentTarget.style.color = colors.text.tertiary;
                   }}
                 >
                   <Copy size={10} />
@@ -365,22 +656,21 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
 
               <div
                 style={{
-                  backgroundColor: 'var(--color-bg-elevated)',
-                  border: `1px solid var(--color-border-medium)`,
-                  borderRadius: '8px',
-                  padding: '12px',
+                  backgroundColor: colors.bg.surface,
+                  border: `1px solid ${colors.bg.border}`,
+                  borderRadius: borderRadius.md,
+                  padding: spacing[3],
                 }}
               >
                 <pre
                   style={{
                     fontSize: '11px',
-                    color: 'var(--color-text-secondary)',
+                    color: colors.text.tertiary,
                     whiteSpace: 'pre-wrap',
                     fontFamily: 'monospace',
                     lineHeight: 1.4,
                     margin: 0,
                     wordWrap: 'break-word',
-                    overflowWrap: 'break-word',
                   }}
                 >
                   {testResult.details}
@@ -391,13 +681,13 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
 
           {/* 原始数据（JSON格式） */}
           {testResult.rawData && (
-            <div style={{ marginTop: '16px' }}>
+            <div style={{ marginTop: spacing[4] }}>
               <h3
                 style={{
                   fontSize: '12px',
                   fontWeight: 600,
-                  color: 'var(--color-text-secondary)',
-                  margin: '0 0 8px 0',
+                  color: colors.text.tertiary,
+                  margin: `0 0 ${spacing[2]} 0`,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
                 }}
@@ -407,10 +697,10 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
 
               <div
                 style={{
-                  backgroundColor: 'var(--color-bg-elevated)',
-                  border: `1px solid var(--color-border-medium)`,
-                  borderRadius: '8px',
-                  padding: '12px',
+                  backgroundColor: colors.bg.surface,
+                  border: `1px solid ${colors.bg.border}`,
+                  borderRadius: borderRadius.md,
+                  padding: spacing[3],
                   maxHeight: '200px',
                   overflowY: 'auto',
                 }}
@@ -418,13 +708,12 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
                 <pre
                   style={{
                     fontSize: '10px',
-                    color: 'var(--color-text-muted)',
+                    color: colors.text.muted,
                     whiteSpace: 'pre-wrap',
                     fontFamily: 'monospace',
                     lineHeight: 1.3,
                     margin: 0,
                     wordWrap: 'break-word',
-                    overflowWrap: 'break-word',
                   }}
                 >
                   {JSON.stringify(testResult.rawData, null, 2)}
@@ -434,14 +723,15 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
           )}
         </div>
 
-        {/* 底部操作 */}
+        {/* 底部按钮区域 */}
         <div
           style={{
-            padding: '16px 20px',
-            borderTop: `1px solid var(--color-border-medium)`,
+            padding: `${spacing[4]} ${spacing[6]} ${spacing[6]} ${spacing[6]}`,
+            borderTop: `1px solid ${colors.bg.border}`,
+            flexShrink: 0,
             display: 'flex',
             justifyContent: 'flex-end',
-            gap: '12px',
+            gap: spacing[3],
           }}
         >
           {testResult.type === 'success' && (
@@ -454,22 +744,22 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '8px 16px',
+                padding: `${spacing[2]} ${spacing[4]}`,
                 fontSize: '12px',
-                color: 'var(--color-text-secondary)',
-                backgroundColor: 'var(--color-bg-subtle)',
-                border: '1px solid var(--color-border-light)',
-                borderRadius: '6px',
+                color: colors.text.tertiary,
+                backgroundColor: colors.bg.secondary,
+                border: `1px solid ${colors.bg.border}`,
+                borderRadius: borderRadius.sm,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--color-bg-elevated)';
-                e.currentTarget.style.color = 'var(--color-text-primary)';
+                e.currentTarget.style.backgroundColor = colors.bg.surface;
+                e.currentTarget.style.color = colors.text.secondary;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--color-bg-subtle)';
-                e.currentTarget.style.color = 'var(--color-text-secondary)';
+                e.currentTarget.style.backgroundColor = colors.bg.secondary;
+                e.currentTarget.style.color = colors.text.tertiary;
               }}
             >
               <ExternalLink size={12} />
@@ -480,19 +770,19 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
           <button
             onClick={onClose}
             style={{
-              padding: '8px 20px',
+              padding: `${spacing[2]} ${spacing[5]}`,
               fontSize: '12px',
               fontWeight: 500,
               color: '#F8F8FA',
-              backgroundColor: testResult.type === 'success' ? 'var(--color-success)' : 'var(--color-primary)',
+              backgroundColor: testResult.type === 'success' ? colors.success[500] : colors.primary[500],
               border: 'none',
-              borderRadius: '6px',
+              borderRadius: borderRadius.sm,
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+              e.currentTarget.style.boxShadow = shadows.md;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
@@ -503,6 +793,7 @@ export const TestResultModal: React.FC<TestResultModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
