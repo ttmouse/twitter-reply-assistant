@@ -6,12 +6,13 @@ import { AIService } from '../services/ai-service';
 import type { AIConfig, AIProvider } from '../types';
 import { PROVIDER_URLS, PROVIDER_NAMES, MODEL_SUGGESTIONS, REPLY_STYLES, ErrorHelper, AppError } from '../types';
 import { CustomStyleManager } from '../components/CustomStyleManager';
-import { Shield, FlaskConical, Zap, Settings, Check, AlertCircle, ChevronDown, Eye, EyeOff, Link2, Database, MessageSquare, Bug, Loader2, TestTube } from 'lucide-react';
+import { Shield, FlaskConical, Zap, Settings, Check, AlertCircle, ChevronDown, Eye, EyeOff, Link2, Database, Bug, Loader2, TestTube } from 'lucide-react';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'config' | 'status' | 'test' | 'customStyles'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'test' | 'customStyles'>('config');
   const [config, setConfig] = useState<AIConfig | null>(null);
   const [testResult, setTestResult] = useState<string>('');
+  const [showToast, setShowToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -93,9 +94,6 @@ function App() {
       await loadData();
 
       setTestResult('✅ 配置已成功保存！');
-      setTimeout(() => {
-        setActiveTab('status');
-      }, 1000);
     } catch (error: unknown) {
       const formattedError = ErrorHelper.formatForUser(error);
       setTestResult(`❌ 保存失败:\n\n${formattedError}`);
@@ -166,8 +164,13 @@ function App() {
 
   // 测试 AI 生成回复
   const testAIGeneration = async () => {
-    if (!config) {
-      setTestResult('❌ 请先保存 API 配置');
+    // 使用当前表单配置或已保存的配置
+    const testConfig = config || formData;
+
+    // 验证配置
+    const validation = ConfigValidator.validateConfig(testConfig);
+    if (!validation.valid) {
+      setTestResult(`❌ 配置验证失败:\n${validation.errors.join('\n')}`);
       return;
     }
 
@@ -175,30 +178,37 @@ function App() {
     setTestResult('生成测试回复...\n');
 
     try {
-      const reply = await AIService.generateReply(
+      const reply = await AIService.generateReplyWithConfig(
         '今天天气真好！☀️',
-        'humorous'
+        'humorous',
+        testConfig
       );
 
-      setTestResult(
-        (prev) =>
-          prev +
-          `✅ 回复生成成功！\n\n` +
-          `原推文: "今天天气真好！☀️"\n` +
-          `风格: 幽默风趣\n` +
-          `AI 回复: "${reply}"\n\n` +
-          `字符数: ${reply.length}/280`
-      );
+      setShowToast({
+        message: '测试成功！API连接和模型响应正常',
+        type: 'success'
+      });
+
+      // 3秒后自动关闭toast
+      setTimeout(() => setShowToast(null), 3000);
+      setTestResult(`AI 回复: "${reply}"\n\n字符数: ${reply.length}/280`);
     } catch (error: unknown) {
       const formattedError = ErrorHelper.formatForUser(error);
-      setTestResult((prev) => prev + `❌ 生成失败:\n\n${formattedError}`);
+      setShowToast({
+        message: '测试失败：' + formattedError.split('\n')[0],
+        type: 'error'
+      });
+
+      // 5秒后自动关闭toast
+      setTimeout(() => setShowToast(null), 5000);
+      setTestResult(`错误详情：\n${formattedError}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-[440px] h-[600px]" style={{ backgroundColor: 'var(--color-bg-base)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="w-[440px]" style={{ backgroundColor: 'var(--color-bg-base)', display: 'flex', flexDirection: 'column', height: 'auto', minHeight: '600px', maxHeight: '80vh' }}>
       {/* 极简克制头部 */}
       <div style={{
         background: 'var(--color-bg-elevated)',
@@ -255,7 +265,7 @@ function App() {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
           gap: '4px',
           background: 'var(--color-bg-subtle)',
           padding: '2px',
@@ -263,7 +273,6 @@ function App() {
         }}>
           {[
             { id: 'config', label: 'API 配置' },
-            { id: 'status', label: '状态' },
             { id: 'customStyles', label: '自定义' },
             { id: 'test', label: '测试' }
           ].map((tab) => (
@@ -301,11 +310,12 @@ function App() {
         background: 'var(--color-bg-base)',
         flex: 1,
         overflowY: 'auto',
-        minWidth: 0
+        minWidth: 0,
+        paddingBottom: '32px'
       }}>
         {/* API 配置标签页 */}
         {activeTab === 'config' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* 状态指示器 */}
             {config ? (
               <div style={{
@@ -351,53 +361,44 @@ function App() {
 
             {/* AI 提供商 */}
             <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                marginBottom: '16px'
-              }}>
-                <FlaskConical size={18} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
-                  AI 提供商
-                </h3>
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '12px'
-              }}>
+              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+                AI 提供商
+              </h3>
+              <select
+                value={formData.provider}
+                onChange={(e) => handleProviderChange(e.target.value as AIProvider)}
+                style={{
+                  width: '100%',
+                  height: '40px',
+                  padding: '0 36px 0 12px',
+                  fontSize: '14px',
+                  background: 'var(--color-bg-surface)',
+                  border: `1px solid var(--color-border-light)`,
+                  borderRadius: '8px',
+                  color: 'var(--color-text-primary)',
+                  transition: 'all var(--transition-base)',
+                  cursor: 'pointer',
+                  boxSizing: 'border-box',
+                  appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 12px center',
+                  backgroundSize: '16px'
+                }}
+              >
                 {(['siliconflow', 'deepseek', 'glm', 'custom'] as AIProvider[]).map(
                   (provider) => (
-                    <button
-                      key={provider}
-                      onClick={() => handleProviderChange(provider)}
-                      style={{
-                        height: '32px',
-                        fontSize: '12px',
-                        fontWeight: 500,
-                        borderRadius: 'var(--radius-base)',
-                        border: `1px solid ${formData.provider === provider ? 'var(--color-primary)' : 'var(--color-border-light)'}`,
-                        background: formData.provider === provider
-                          ? 'var(--color-primary)'
-                          : 'var(--color-bg-surface)',
-                        color: formData.provider === provider
-                          ? '#F8F8FA'
-                          : 'var(--color-text-primary)',
-                        transition: 'all var(--transition-base)',
-                        cursor: 'pointer'
-                      }}
-                    >
+                    <option key={provider} value={provider}>
                       {PROVIDER_NAMES[provider]}
-                    </button>
+                    </option>
                   )
                 )}
-              </div>
+              </select>
             </div>
 
             {/* 极简 API Token 输入 */}
             <div>
-              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                 API Token
               </h3>
               <div style={{ position: 'relative' }}>
@@ -418,7 +419,8 @@ function App() {
                     border: `1px solid var(--color-border-light)`,
                     borderRadius: 'var(--radius-base)',
                     color: 'var(--color-text-primary)',
-                    transition: 'all var(--transition-base)'
+                    transition: 'all var(--transition-base)',
+                    boxSizing: 'border-box'
                   }}
                 />
                 <button
@@ -449,7 +451,7 @@ function App() {
 
             {/* 极简模型选择 */}
             <div>
-              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                 模型名称
               </h3>
               <input
@@ -468,7 +470,8 @@ function App() {
                   border: `1px solid var(--color-border-light)`,
                   borderRadius: 'var(--radius-base)',
                   color: 'var(--color-text-primary)',
-                  transition: 'all var(--transition-base)'
+                  transition: 'all var(--transition-base)',
+                  boxSizing: 'border-box'
                 }}
               />
               <datalist id="model-suggestions">
@@ -491,7 +494,7 @@ function App() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  marginBottom: '8px'
+                  marginBottom: '4px'
                 }}>
                   <Link2 size={16} style={{ color: 'var(--color-primary)' }} />
                   <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
@@ -511,11 +514,12 @@ function App() {
                     padding: '0 12px',
                     fontSize: '13px',
                     background: 'var(--color-bg-surface)',
+                    boxSizing: 'border-box',
                     border: `1px solid var(--color-primary)`,
                     borderRadius: 'var(--radius-base)',
                     color: 'var(--color-text-primary)',
                     transition: 'all var(--transition-base)',
-                    marginBottom: '8px'
+                    marginBottom: '4px'
                   }}
                 />
                 <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}>
@@ -599,7 +603,7 @@ function App() {
                 borderRadius: 'var(--radius-base)',
                 border: `1px solid var(--color-border-light)`
               }}>
-                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                   测试结果
                 </h3>
                 <pre style={{
@@ -621,141 +625,7 @@ function App() {
           </div>
         )}
 
-        {/* 状态标签页 */}
-        {activeTab === 'status' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* 配置状态 */}
-            <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '12px'
-              }}>
-                <Settings size={16} style={{ color: 'var(--color-primary)' }} />
-                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
-                  当前配置
-                </h3>
-              </div>
-              {config ? (
-                <div style={{
-                  padding: '16px',
-                  background: 'var(--color-bg-elevated)',
-                  borderRadius: 'var(--radius-base)',
-                  border: `1px solid var(--color-border-light)`
-                }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {[
-                      { label: '提供商', value: PROVIDER_NAMES[config.provider] },
-                      { label: '模型', value: config.model },
-                      { label: 'API URL', value: config.apiUrl, truncate: true, mono: true },
-                      { label: 'API Token', value: `${config.apiToken.slice(0, 10)}...`, mono: true }
-                    ].map((item, index) => (
-                      <div key={index} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '12px',
-                        minWidth: 0
-                      }}>
-                        <span style={{
-                          fontSize: '12px',
-                          color: 'var(--color-text-secondary)',
-                          flexShrink: 0
-                        }}>
-                          {item.label}
-                        </span>
-                        <span style={{
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          color: 'var(--color-text-primary)',
-                          fontFamily: item.mono ? 'monospace' : 'inherit',
-                          flex: 1,
-                          minWidth: 0,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          textAlign: 'right'
-                        }}>
-                          {item.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div style={{
-                  padding: '24px',
-                  textAlign: 'center',
-                  background: 'var(--color-bg-elevated)',
-                  borderRadius: 'var(--radius-base)',
-                  border: `1px solid var(--color-border-light)`
-                }}>
-                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: 0 }}>
-                    暂无配置
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* 回复风格列表 */}
-            <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '12px'
-              }}>
-                <MessageSquare size={16} style={{ color: 'var(--color-primary)' }} />
-                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
-                  可用回复风格
-                </h3>
-              </div>
-              <div style={{
-                padding: '16px',
-                background: 'var(--color-bg-elevated)',
-                borderRadius: 'var(--radius-base)',
-                border: `1px solid var(--color-border-light)`
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {REPLY_STYLES.map((style) => (
-                    <div key={style.id} style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      minWidth: 0
-                    }}>
-                      <span style={{ fontSize: '14px', flexShrink: 0 }}>{style.icon}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          color: 'var(--color-text-primary)',
-                          marginBottom: '2px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}>
-                          {style.name}
-                        </div>
-                        <div style={{
-                          fontSize: '11px',
-                          color: 'var(--color-text-tertiary)',
-                          lineHeight: 1.3,
-                          wordWrap: 'break-word',
-                          overflowWrap: 'break-word'
-                        }}>
-                          {style.description}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
+  
         {/* 自定义风格标签页 */}
         {activeTab === 'customStyles' && (
           <CustomStyleManager />
@@ -797,13 +667,13 @@ function App() {
                     color: 'var(--color-text-primary)',
                     marginBottom: '4px',
                     marginTop: '0'
-                  }}>开发测试工具</p>
+                  }}>功能测试工具</p>
                   <p style={{
                     fontSize: '11px',
                     color: 'var(--color-text-secondary)',
                     margin: 0
                   }}>
-                    用于开发调试，正常使用不需要此功能
+                    验证当前配置是否能正常生成回复
                   </p>
                 </div>
               </div>
@@ -828,7 +698,7 @@ function App() {
               )}
             </button>
 
-            {!config && (
+            {!config && !formData.apiToken && (
               <div className="modern-card" style={{
                 background: 'var(--color-warning)',
                 border: `1px solid var(--color-warning)`,
@@ -839,14 +709,14 @@ function App() {
                     size={14}
                     style={{ color: '#F5F5F7', minWidth: 14, minHeight: 14 }}
                   />
-                  <span>需要先在"API 配置"中保存配置</span>
+                  <span>请先配置 API Token</span>
                 </p>
               </div>
             )}
 
             {testResult && (
               <div className="modern-card" style={{ padding: '12px' }}>
-                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }} className="flex items-center gap-2">
+                <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }} className="flex items-center gap-2">
                   <Bug
                     size={16}
                     style={{ color: 'var(--color-primary)', minWidth: 16, minHeight: 16 }}
@@ -854,17 +724,21 @@ function App() {
                   <span>测试结果</span>
                 </h3>
                 <pre style={{
-                fontSize: '11px',
-                color: 'var(--color-text-secondary)',
-                whiteSpace: 'pre-wrap',
-                fontFamily: 'monospace',
-                lineHeight: 1.4,
-                margin: 0,
-                padding: '8px',
-                backgroundColor: 'var(--color-bg-subtle)',
-                borderRadius: 'var(--radius-base)',
-                border: `1px solid var(--color-border-light)`
-              }}>
+                  fontSize: '11px',
+                  color: 'var(--color-text-secondary)',
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'monospace',
+                  lineHeight: 1.4,
+                  margin: 0,
+                  padding: '8px',
+                  backgroundColor: 'var(--color-bg-subtle)',
+                  borderRadius: 'var(--radius-base)',
+                  border: `1px solid var(--color-border-light)`,
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  overflowX: 'hidden',
+                  maxWidth: '100%'
+                }}>
                   {testResult}
                 </pre>
               </div>
@@ -872,6 +746,65 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Toast 提示 */}
+      {showToast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 10000,
+            maxWidth: '300px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: showToast.type === 'success' ? '#F8F8FA' : '#F8F8FA',
+            background: showToast.type === 'success' ? 'var(--color-success)' : 'var(--color-error)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            animation: 'slideInRight 0.3s ease-out',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <div style={{
+            width: '16px',
+            height: '16px',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <span style={{ fontSize: '10px', lineHeight: 1 }}>
+              {showToast.type === 'success' ? '✓' : '!'}
+            </span>
+          </div>
+          <span>{showToast.message}</span>
+          <button
+            onClick={() => setShowToast(null)}
+            style={{
+              width: '20px',
+              height: '20px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              borderRadius: '50%',
+              color: '#F8F8FA',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginLeft: '8px',
+              flexShrink: 0
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* 无底部状态栏，避免重叠 */}
     </div>

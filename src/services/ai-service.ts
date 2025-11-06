@@ -36,12 +36,27 @@ export class AIService {
     tweetText: string,
     styleId: string
   ): Promise<string> {
+    return this.generateReplyWithConfig(tweetText, styleId, null);
+  }
+
+  /**
+   * Generate a reply for a tweet with specific config
+   * @param tweetText - The text content of the tweet to reply to
+   * @param styleId - The reply style to use (preset or custom style ID)
+   * @param config - AI configuration to use (if null, load from storage)
+   * @returns Promise<string> - Generated reply text
+   */
+  static async generateReplyWithConfig(
+    tweetText: string,
+    styleId: string,
+    config: AIConfig | null
+  ): Promise<string> {
     console.log('[AI Service] 开始生成回复...', { styleId, tweetLength: tweetText.length });
 
-    // Get configuration from storage
-    const config = await StorageService.getAIConfig();
+    // Use provided config or load from storage
+    const finalConfig = config || await StorageService.getAIConfig();
 
-    if (!config) {
+    if (!finalConfig) {
       console.error('[AI Service] 未找到 API 配置');
       throw new AppError(
         ErrorType.INVALID_CONFIG,
@@ -72,7 +87,7 @@ export class AIService {
           console.log(`[AI Service] 🔄 第 ${attempt} 次重试...`);
         }
 
-        const reply = await this.callAIAPI(config, tweetText, style);
+        const reply = await this.callAIAPI(finalConfig, tweetText, style);
 
         console.log('[AI Service] ✅ 回复生成成功:', {
           length: reply.length,

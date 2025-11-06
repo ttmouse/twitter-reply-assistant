@@ -633,14 +633,10 @@ export class ConfigValidator {
       }
     }
 
-    // Validate description
-    if (!style.description || typeof style.description !== 'string') {
-      errors.push('描述不能为空');
-    } else {
+    // Validate description (optional)
+    if (style.description && typeof style.description === 'string') {
       const trimmedDesc = style.description.trim();
-      if (trimmedDesc.length === 0) {
-        errors.push('描述不能为空');
-      } else if (trimmedDesc.length > CUSTOM_STYLE_CONSTRAINTS.DESCRIPTION_MAX_LENGTH) {
+      if (trimmedDesc.length > 0 && trimmedDesc.length > CUSTOM_STYLE_CONSTRAINTS.DESCRIPTION_MAX_LENGTH) {
         errors.push(`描述不能超过 ${CUSTOM_STYLE_CONSTRAINTS.DESCRIPTION_MAX_LENGTH} 个字符`);
       }
     }

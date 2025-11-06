@@ -116,11 +116,39 @@ export interface CustomReplyStyle {
  */
 export const REPLY_STYLES: ReplyStyle[] = [
   {
+    id: 'professional',
+    name: '专业严谨',
+    icon: '💼',
+    description: '适用于行业讨论、专业话题',
+    systemPrompt: '你是一个专业的评论者。请用严谨、专业的语气回复推文，提供有价值的见解和分析，展现专业素养。',
+  },
+  {
+    id: 'humorous',
+    name: '幽默风趣',
+    icon: '😄',
+    description: '适用于娱乐、轻松话题',
+    systemPrompt: '你是一个幽默的评论者。请用风趣、轻松的语气回复推文，可以适当加入幽默元素，让回复更有趣。',
+  },
+  {
+    id: 'concise',
+    name: '简洁明了',
+    icon: '✨',
+    description: '适用于快速回复、简短互动',
+    systemPrompt: '你是一个简洁的评论者。请用简练、明了的语气回复推文，直击要点，避免冗长的表达。',
+  },
+  {
     id: 'supportive',
     name: '友好支持',
     icon: '👍',
     description: '适用于鼓励、赞同',
     systemPrompt: '你是一个友好支持的评论者。请用温暖、鼓励的语气回复推文，表达认同和支持，传递正能量。',
+  },
+  {
+    id: 'critical',
+    name: '批判性思考',
+    icon: '🤔',
+    description: '适用于辩论、分析性讨论',
+    systemPrompt: '你是一个批判性思考者。请用理性、分析的语气回复推文，提供多角度思考，鼓励深入探讨。',
   },
   {
     id: 'questioning',
