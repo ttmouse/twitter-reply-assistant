@@ -114,14 +114,12 @@ const getButtonStyles = (variant: ButtonVariant, size: ButtonSize, fullWidth: bo
       backgroundColor: 'transparent',
       color: isDisabled ? colors.text.disabled : colors.primary[500],
       boxShadow: 'none',
-      border: `1px solid ${colors.primary[500]}20`,
+      border: `1px solid ${colors.primary[500]}`,
       ...(isHovered && !isDisabled && {
-        backgroundColor: `${colors.primary[500]}10`,
-        borderColor: `${colors.primary[500]}40`,
+        backgroundColor: `${colors.primary[500]}15`,
       }),
       ...(isActive && !isDisabled && {
-        backgroundColor: `${colors.primary[500]}20`,
-        borderColor: `${colors.primary[500]}60`,
+        backgroundColor: `${colors.primary[500]}25`,
         transform: 'translateY(0)',
       }),
     },

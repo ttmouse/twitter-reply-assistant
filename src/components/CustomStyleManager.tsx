@@ -394,11 +394,11 @@ export function CustomStyleManager() {
                         height: '28px',
                         background: isLoading
                           ? colors.bg.border
-                          : `${colors.primary[500]}15`, // 非常淡的背景色
+                          : colors.primary[500], // 使用实心主色背景
                         color: isLoading
                           ? colors.text.disabled
-                          : colors.primary[500], // 使用主色而不是白色
-                        border: `1px solid ${colors.primary[500]}20`, // 非常淡的边框
+                          : '#FFFFFF', // 白色图标
+                        border: '1px solid transparent', // 透明边框
                         borderRadius: borderRadius.sm, // 4px - 更小的圆角
                         cursor: isLoading ? 'not-allowed' : 'pointer',
                         transition: `all ${transitions.duration.fast} ${transitions.easing.easeOut}`,
@@ -408,13 +408,13 @@ export function CustomStyleManager() {
                       }}
                       onMouseEnter={(e) => {
                         if (!isLoading) {
-                          e.currentTarget.style.background = `${colors.primary[500]}25`; // 稍微增强背景
-                          e.currentTarget.style.borderColor = `${colors.primary[500]}40`;
+                          e.currentTarget.style.background = colors.primary[600]; // 悬停时更深的颜色
+                          e.currentTarget.style.transform = 'scale(1.05)'; // 轻微放大效果
                         }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = `${colors.primary[500]}15`;
-                        e.currentTarget.style.borderColor = `${colors.primary[500]}20`;
+                        e.currentTarget.style.background = colors.primary[500];
+                        e.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
                       <Edit3 size={12} />
@@ -426,9 +426,9 @@ export function CustomStyleManager() {
                       style={{
                         width: '28px', // 减小按钮尺寸
                         height: '28px',
-                        background: `${colors.error[500]}10`, // 非常淡的红色背景
-                        color: colors.error[500],
-                        border: `1px solid ${colors.error[500]}20`, // 非常淡的边框
+                        background: colors.error[500], // 使用明显的红色背景
+                        color: '#FFFFFF', // 白色图标
+                        border: '1px solid transparent', // 透明边框
                         borderRadius: borderRadius.sm, // 4px
                         cursor: isLoading ? 'not-allowed' : 'pointer',
                         transition: `all ${transitions.duration.fast} ${transitions.easing.easeOut}`,
@@ -438,13 +438,13 @@ export function CustomStyleManager() {
                       }}
                       onMouseEnter={(e) => {
                         if (!isLoading) {
-                          e.currentTarget.style.background = `${colors.error[500]}20`; // 稍微增强背景
-                          e.currentTarget.style.borderColor = `${colors.error[500]}35`;
+                          e.currentTarget.style.background = colors.error[600]; // 悬停时更深的红色
+                          e.currentTarget.style.transform = 'scale(1.05)'; // 轻微放大效果
                         }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = `${colors.error[500]}10`;
-                        e.currentTarget.style.borderColor = `${colors.error[500]}20`;
+                        e.currentTarget.style.background = colors.error[500];
+                        e.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
                       <Trash2 size={12} />
@@ -464,26 +464,6 @@ export function CustomStyleManager() {
                     position: 'relative',
                     overflow: 'hidden',
                   }}>
-                    <div style={{
-                      fontSize: typography.fontSize.xs, // 11px
-                      fontWeight: typography.fontWeight.semibold,
-                      color: colors.text.tertiary,
-                      marginBottom: spacing[2], // 8px
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px', // 减少字间距
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing[1], // 4px
-                    }}>
-                      <div style={{
-                        width: '4px', // 更小的圆点
-                        height: '4px',
-                        background: colors.primary[500],
-                        borderRadius: borderRadius.full,
-                        opacity: 0.4, // 更透明的圆点
-                      }} />
-                      系统提示词
-                    </div>
                     <p style={{
                       fontSize: typography.fontSize.sm, // 12px - 减小字体
                       color: colors.text.secondary,

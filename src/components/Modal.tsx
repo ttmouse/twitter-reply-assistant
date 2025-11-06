@@ -37,7 +37,7 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnEscape = true,
   closeOnBackdrop = true,
   style = {},
-  backdropOpacity = 0.6,
+  backdropOpacity = 0.85,
 }) => {
   // 键盘事件处理
   useEffect(() => {
@@ -86,12 +86,12 @@ export const Modal: React.FC<ModalProps> = ({
         bottom: 0,
         backgroundColor: `rgba(0, 0, 0, ${backdropOpacity})`,
         zIndex: Z_INDEX.MODAL,
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: spacing[4],
+        padding: spacing[3],
         animation: `fadeIn ${transitions.duration.normal} ${transitions.easing.easeOut}`,
       }}
       onClick={handleBackdropClick}
@@ -101,7 +101,7 @@ export const Modal: React.FC<ModalProps> = ({
         style={{
           width: '100%',
           maxWidth,
-          maxHeight: '90vh',
+          maxHeight: '80vh',
           backgroundColor: colors.bg.primary,
           borderRadius: borderRadius.lg,
           boxShadow: shadows.xl,
@@ -142,7 +142,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   return (
     <div
       style={{
-        padding: `${spacing[5]} ${spacing[6]} ${spacing[4]} ${spacing[6]}`,
+        padding: `${spacing[3]} ${spacing[5]}`,
         borderBottom: `1px solid ${colors.bg.borderLight}`,
         display: 'flex',
         alignItems: 'center',
@@ -225,7 +225,7 @@ interface ModalBodyProps {
 
 export const ModalBody: React.FC<ModalBodyProps> = ({
   children,
-  padding = `${spacing[6]}`,
+  padding = `${spacing[4]} ${spacing[5]}`,
   scrollable = true,
 }) => {
   return (
@@ -274,7 +274,7 @@ interface ModalFooterProps {
 
 export const ModalFooter: React.FC<ModalFooterProps> = ({
   children,
-  padding = `${spacing[4]} ${spacing[6]} ${spacing[6]} ${spacing[6]}`,
+  padding = `${spacing[3]} ${spacing[5]}`,
 }) => {
   return (
     <div

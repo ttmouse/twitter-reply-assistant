@@ -220,7 +220,7 @@ export const Tabs: React.FC<TabsProps> = ({
       style={{
         position: 'relative',
         width: '100%',
-        backgroundColor: colors.bg.secondary,
+        backgroundColor: colors.bg.primary,
         borderRadius: borderRadius.md,
         padding: spacing[1],
       }}

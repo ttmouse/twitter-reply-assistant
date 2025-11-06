@@ -164,8 +164,8 @@ export function EditModal({ isOpen, style, onClose, onSave, isLoading, formError
         )}
       />
 
-      <ModalBody>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[5] }}>
+      <ModalBody padding={`${spacing[5]} ${spacing[6]} ${spacing[4]} ${spacing[6]}`}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[4] }}>
           {/* 风格名称 */}
           {renderInputField(
             '风格名称',

@@ -429,38 +429,31 @@ function App() {
             </div>
           </div>
 
-          {/* 简化的状态指示器 */}
+          {/* 简化的连接状态指示器 */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: spacing[2],
-              padding: `${spacing[2]} ${spacing[3]}`,
-              background: config ? `${colors.success[500]}10` : `${colors.bg.border}`,
-              border: `1px solid ${config ? colors.success[500] + '20' : colors.bg.borderMedium}`,
+              justifyContent: 'center',
+              width: spacing[8],
+              height: spacing[8],
+              background: config ? `${colors.success[500]}15` : `${colors.bg.border}`,
+              border: `1px solid ${config ? colors.success[500] + '25' : colors.bg.borderMedium}`,
               borderRadius: borderRadius.full,
               flexShrink: 0,
             }}
           >
             <div
               style={{
-                width: '6px',
-                height: '6px',
+                width: '8px',
+                height: '8px',
                 borderRadius: '50%',
                 backgroundColor: config ? colors.success[500] : colors.text.muted,
                 animation: config ? 'pulse 2s infinite' : 'none',
+                boxShadow: config ? `0 0 8px ${colors.success[500]}40` : 'none',
               }}
+              title={config ? `${PROVIDER_NAMES[config.provider]} 已连接` : '未配置'}
             />
-            <span
-              style={{
-                fontSize: typography.fontSize.xs,
-                fontWeight: typography.fontWeight.medium,
-                color: config ? colors.success[500] : colors.text.secondary,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {config ? PROVIDER_NAMES[config.provider] : '未配置'}
-            </span>
           </div>
         </div>
       </div>
@@ -468,7 +461,7 @@ function App() {
       {/* 标签导航 - 紧凑布局 */}
       <div
         style={{
-          background: colors.bg.secondary,
+          background: colors.bg.primary,
           padding: `${spacing[1]} ${spacing[5]}`,
           borderBottom: `1px solid ${colors.bg.border}`,
           flexShrink: 0,
@@ -722,64 +715,52 @@ function App() {
             </div>
 
             {/* 系统提示词预览 */}
-            <div>
-              <h3
-                style={{
-                  fontSize: typography.fontSize.sm,
-                  fontWeight: typography.fontWeight.semibold,
-                  color: colors.text.primary,
-                  marginBottom: spacing[3],
-                }}
-              >
-                系统提示词预览
-              </h3>
+            <div
+              style={{
+                padding: spacing[4],
+                background: colors.bg.elevated,
+                border: `1px solid ${colors.bg.borderLight}`,
+                borderRadius: borderRadius.md,
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
               <div
                 style={{
-                  padding: spacing[4],
-                  background: colors.bg.elevated,
-                  border: `1px solid ${colors.bg.borderLight}`,
-                  borderRadius: borderRadius.md,
-                  position: 'relative',
-                  overflow: 'hidden',
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.semibold,
+                  color: colors.text.tertiary,
+                  marginBottom: spacing[2],
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing[2],
                 }}
               >
                 <div
                   style={{
-                    fontSize: typography.fontSize.xs,
-                    fontWeight: typography.fontWeight.semibold,
-                    color: colors.text.tertiary,
-                    marginBottom: spacing[2],
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing[2],
+                    width: '6px',
+                    height: '6px',
+                    background: colors.primary[500],
+                    borderRadius: '50%',
+                    opacity: 0.8,
                   }}
-                >
-                  <div
-                    style={{
-                      width: '6px',
-                      height: '6px',
-                      background: colors.primary[500],
-                      borderRadius: '50%',
-                      opacity: 0.8,
-                    }}
-                  />
-                  {REPLY_STYLES.find((s) => s.id === testStyle)?.name}
-                </div>
-                <p
-                  style={{
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary,
-                    lineHeight: 1.6,
-                    margin: 0,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {REPLY_STYLES.find((s) => s.id === testStyle)?.systemPrompt}
-                </p>
+                />
+                {REPLY_STYLES.find((s) => s.id === testStyle)?.name}
               </div>
+              <p
+                style={{
+                  fontSize: typography.fontSize.sm,
+                  color: colors.text.secondary,
+                  lineHeight: 1.6,
+                  margin: 0,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {REPLY_STYLES.find((s) => s.id === testStyle)?.systemPrompt}
+              </p>
             </div>
 
             {/* 测试按钮 */}
