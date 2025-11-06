@@ -596,67 +596,63 @@ function App() {
             )}
 
             {/* 操作按钮 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '12px'
-              }}>
-                <button
-                  onClick={testAPI}
-                  disabled={isLoading || isSaving}
-                  style={{
-                    height: '36px',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    borderRadius: 'var(--radius-base)',
-                    border: '1px solid var(--color-accent)',
-                    background: 'var(--color-accent)',
-                    color: '#F8F8FA',
-                    cursor: isLoading || isSaving ? 'not-allowed' : 'pointer',
-                    opacity: isLoading || isSaving ? 0.6 : 1,
-                    transition: 'all var(--transition-base)'
-                  }}
-                >
-                  {isLoading ? '测试中...' : '测试连接'}
-                </button>
-                <button
-                  onClick={saveConfig}
-                  disabled={isLoading || isSaving}
-                  style={{
-                    height: '36px',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    borderRadius: 'var(--radius-base)',
-                    border: '1px solid var(--color-primary)',
-                    background: 'var(--color-primary)',
-                    color: '#F8F8FA',
-                    cursor: isLoading || isSaving ? 'not-allowed' : 'pointer',
-                    opacity: isLoading || isSaving ? 0.6 : 1,
-                    transition: 'all var(--transition-base)'
-                  }}
-                >
-                  {isSaving ? '保存中...' : '保存配置'}
-                </button>
-              </div>
-
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: config ? '1fr 1fr 1fr' : '1fr 1fr',
+              gap: '12px'
+            }}>
+              <button
+                onClick={testAPI}
+                disabled={isLoading || isSaving}
+                style={{
+                  height: '36px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  borderRadius: 'var(--radius-base)',
+                  border: '1px solid var(--color-accent)',
+                  background: 'var(--color-accent)',
+                  color: '#F8F8FA',
+                  cursor: isLoading || isSaving ? 'not-allowed' : 'pointer',
+                  opacity: isLoading || isSaving ? 0.6 : 1,
+                  transition: 'all var(--transition-base)'
+                }}
+              >
+                {isLoading ? '测试中...' : '测试连接'}
+              </button>
+              <button
+                onClick={saveConfig}
+                disabled={isLoading || isSaving}
+                style={{
+                  height: '36px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  borderRadius: 'var(--radius-base)',
+                  border: '1px solid var(--color-primary)',
+                  background: 'var(--color-primary)',
+                  color: '#F8F8FA',
+                  cursor: isLoading || isSaving ? 'not-allowed' : 'pointer',
+                  opacity: isLoading || isSaving ? 0.6 : 1,
+                  transition: 'all var(--transition-base)'
+                }}
+              >
+                {isSaving ? '保存中...' : '应用'}
+              </button>
               {config && (
                 <button
                   onClick={clearConfig}
                   style={{
-                    width: '100%',
                     height: '36px',
                     fontSize: '12px',
                     fontWeight: 500,
                     borderRadius: 'var(--radius-base)',
-                    border: '1px solid var(--color-error)',
-                    background: 'var(--color-error)',
-                    color: '#F8F8FA',
+                    border: '1px solid var(--color-border-light)',
+                    background: 'var(--color-bg-elevated)',
+                    color: 'var(--color-text-secondary)',
                     cursor: 'pointer',
                     transition: 'all var(--transition-base)'
                   }}
                 >
-                  清除配置
+                  取消
                 </button>
               )}
             </div>

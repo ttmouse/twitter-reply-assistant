@@ -210,12 +210,7 @@ export function StyleSelector({
                 <div dir="ltr" className="css-146c3p1 r-bcqeeo r-1ttztb7 r-qvutc0 r-37j5jr r-a023e6 r-rjixqe r-b88u0q">
                   <span className="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">{style.name}</span>
                 </div>
-                {style.description && (
-                  <div dir="ltr" className="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3" style={{ fontSize: '13px', opacity: 0.7 }}>
-                    {style.description}
-                  </div>
-                )}
-              </div>
+                              </div>
             </div>
           ))}
         </div>
