@@ -54,8 +54,15 @@ export const Tabs: React.FC<TabsProps> = ({
         const rect = activeElement.getBoundingClientRect();
         const containerRect = tabsRef.current.getBoundingClientRect();
 
+        // 获取tabsRef容器的内层padding
+        const containerStyle = window.getComputedStyle(tabsRef.current);
+        const containerPaddingLeft = parseFloat(containerStyle.paddingLeft) || 0;
+        const containerPaddingRight = parseFloat(containerStyle.paddingRight) || 0;
+        const containerGap = parseFloat(containerStyle.gap) || 0;
+
+        // 使用getBoundingClientRect，但考虑padding和gap的影响
         const newStyle: React.CSSProperties = {
-          left: `${rect.left - containerRect.left}px`,
+          left: `${rect.left - containerRect.left + containerPaddingLeft}px`,
           width: `${rect.width}px`,
           transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
         };
@@ -347,35 +354,37 @@ export const Tabs: React.FC<TabsProps> = ({
 
               {/* 激活状态背景装饰 */}
               {isActive && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: `linear-gradient(135deg, ${colors.primary[500]}15 0%, ${colors.primary[500]}05 100%)`,
-                    borderRadius: 'inherit',
-                    zIndex: 0,
-                  }}
-                />
+                <>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: `linear-gradient(135deg, ${colors.primary[500]}15 0%, ${colors.primary[500]}05 100%)`,
+                      borderRadius: 'inherit',
+                      zIndex: 0,
+                    }}
+                  />
+                  {/* 底部指示器直接在活动标签内 */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: '2px',
+                      backgroundColor: colors.primary[500],
+                      borderRadius: `${borderRadius.sm} ${borderRadius.sm} 0 0`,
+                      zIndex: 2,
+                      pointerEvents: 'none',
+                      boxShadow: `0 0 6px ${colors.primary[500]}40`,
+                    }}
+                  />
+                </>
               )}
             </button>
           );
         })}
       </div>
-
-      {/* 简化的指示器 - 更细腻 */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: spacing[1],
-          height: '2px',
-          backgroundColor: colors.primary[500],
-          borderRadius: `${borderRadius.sm} ${borderRadius.sm} 0 0`,
-          zIndex: 2,
-          pointerEvents: 'none',
-          boxShadow: `0 0 6px ${colors.primary[500]}40`,
-          ...indicatorStyle,
-        }}
-      />
     </div>
   );
 };
