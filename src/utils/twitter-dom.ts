@@ -24,11 +24,38 @@ export class TwitterDOM {
     const textElement = tweetElement.querySelector(TWITTER_SELECTORS.TWEET_TEXT);
     if (!textElement) return null;
 
-    // 检查推文是否有"Show more"按钮
-    const showMoreButton = tweetElement.querySelector(TWITTER_SELECTORS.SHOW_MORE_BUTTON) as HTMLElement;
+    // 检查是否是引用推文（通过检查是否在特定容器内来判断）
+    // 引用推文通常位于带有特定类名的容器内
+    const isQuotedTweet = tweetElement.closest('[data-testid="quotedTweet"], [aria-label*="引用"], [aria-label*="Quote"]') ||
+                           // 检查是否有父元素包含"Quote"文本，这是引用推文的另一个标识
+                           tweetElement.closest('[aria-labelledby*="4fae7aj9x5i"]');
+    
+    // 如果是引用推文，不点击"Show more"按钮，直接返回当前文本
+    if (isQuotedTweet) {
+      console.log('[TwitterDOM] 检测到引用推文，不自动展开 Show more');
+      return textElement.textContent?.trim() || null;
+    }
 
-    if (showMoreButton) {
-      console.log('[TwitterDOM] 发现推文有 Show more 按钮，点击展开...');
+    // 对于原始推文，检查是否有"Show more"按钮
+    // Show more 按钮可能在推文元素内部或相邻位置
+    let showMoreButton = tweetElement.querySelector(TWITTER_SELECTORS.SHOW_MORE_BUTTON) as HTMLElement;
+    
+    // 如果在推文元素内没有找到，尝试在同级或父级元素中查找
+    if (!showMoreButton && tweetElement.parentElement) {
+      showMoreButton = tweetElement.parentElement.querySelector(TWITTER_SELECTORS.SHOW_MORE_BUTTON) as HTMLElement;
+    }
+    
+    // 如果还没有找到，尝试在推文元素的下一个兄弟元素中查找
+    if (!showMoreButton && tweetElement.nextElementSibling) {
+      showMoreButton = tweetElement.nextElementSibling.querySelector(TWITTER_SELECTORS.SHOW_MORE_BUTTON) as HTMLElement;
+    }
+
+    // 额外检查：确保 Show more 按钮是可见的并且确实是一个有效的按钮
+    if (showMoreButton && 
+        showMoreButton.offsetParent !== null && // 检查元素是否可见
+        showMoreButton.tagName === 'BUTTON' && // 确保是按钮元素
+        showMoreButton.textContent?.toLowerCase().includes('show')) { // 确保按钮文本包含"show"
+      console.log('[TwitterDOM] 发现原始推文有有效的 Show more 按钮，点击展开...');
       try {
         // 点击 Show more 按钮
         showMoreButton.click();
@@ -45,6 +72,13 @@ export class TwitterDOM {
         // 如果点击失败，返回当前文本
         return textElement.textContent?.trim() || null;
       }
+    } else if (showMoreButton) {
+      console.log('[TwitterDOM] 找到 Show more 按钮，但它可能是无效的，跳过点击');
+      console.log('[TwitterDOM] 按钮信息:', {
+        tagName: showMoreButton.tagName,
+        visible: showMoreButton.offsetParent !== null,
+        textContent: showMoreButton.textContent
+      });
     }
 
     return textElement.textContent?.trim() || null;
@@ -363,32 +397,51 @@ export class TwitterDOM {
    * 2. 从 URL 中提取推文 ID，然后在页面中查找对应推文
    */
   static async getTweetTextFromReplyDialog(dialog: HTMLElement): Promise<string | null> {
+    // 首先检查弹窗中是否有引用推文的标识
+    // 在整个弹窗中查找引用推文的容器，而不仅仅是在 tweetText 元素的父级中
+    const hasQuotedTweet = dialog.querySelector('[data-testid="quotedTweet"]') ||
+                           dialog.querySelector('[aria-labelledby*="4fae7aj9x5i"]') ||
+                           dialog.querySelector('[aria-label*="引用"]') ||
+                           dialog.querySelector('[aria-label*="Quote"]');
+    
+    if (hasQuotedTweet) {
+      console.log('[TwitterDOM] 弹窗中检测到引用推文，跳过所有 Show more 按钮的点击');
+      // 只获取文本内容，不展开任何 Show more
+      const quotedTweet = dialog.querySelector(TWITTER_SELECTORS.TWEET_TEXT);
+      return quotedTweet?.textContent?.trim() || null;
+    }
+    
     // 策略 1: 在弹窗内部查找引用的推文
     const quotedTweet = dialog.querySelector(TWITTER_SELECTORS.TWEET_TEXT);
     if (quotedTweet) {
-      // 检查是否有"Show more"按钮
+      // 如果不是引用推文，则检查是否需要展开
+      // Show more 按钮不是 quotedTweet 的子元素，而是独立按钮
       const showMoreButton = dialog.querySelector(TWITTER_SELECTORS.SHOW_MORE_BUTTON) as HTMLElement;
-
-      if (showMoreButton) {
-        console.log('[TwitterDOM] 发现 Show more 按钮，点击展开内容...');
+      
+      // 额外检查：确保 Show more 按钮是有效的
+      if (showMoreButton && 
+          showMoreButton.offsetParent !== null && // 检查元素是否可见
+          showMoreButton.tagName === 'BUTTON' && // 确保是按钮元素
+          showMoreButton.textContent?.toLowerCase().includes('show')) { // 确保按钮文本包含"show"
+        console.log('[TwitterDOM] 发现原始推文有有效的 Show more 按钮，点击展开...');
         try {
-          // 点击 Show more 按钮
           showMoreButton.click();
-
+          
           // 等待内容展开
           await this.waitForContentExpanded(dialog, 2000);
-
+          
           // 重新获取展开后的文本
-          const expandedText = dialog.querySelector(TWITTER_SELECTORS.TWEET_TEXT)?.textContent?.trim();
-          console.log('[TwitterDOM] 展开后的推文文本:', expandedText?.substring(0, 100) + '...');
+          const expandedText = quotedTweet.textContent?.trim();
+          console.log('[TwitterDOM] 推文展开后文本:', expandedText?.substring(0, 100) + '...');
           return expandedText || null;
         } catch (error) {
           console.warn('[TwitterDOM] 点击 Show more 按钮失败:', error);
-          // 如果点击失败，返回当前文本
           return quotedTweet.textContent?.trim() || null;
         }
+      } else if (showMoreButton) {
+        console.log('[TwitterDOM] 找到 Show more 按钮，但它可能是无效的，跳过点击');
       }
-
+      
       return quotedTweet.textContent?.trim() || null;
     }
 
