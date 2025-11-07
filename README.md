@@ -16,6 +16,7 @@ Twitter Reply Assistant is a Chrome extension that uses AI to generate contextua
 ### ✨ Features
 
 - 🤖 **AI-Powered Replies** - Generate contextual replies using advanced AI models
+- 📝 **Content Expansion** - Expand your seed content into a complete, contextual reply
 - 🎨 **6 Preset Reply Styles** - Professional, Humorous, Concise, Supportive, Critical, Questioning
 - 🎭 **Custom Styles** - Create your own reply styles with custom prompts
 - 🔌 **Multiple AI Providers** - Support for SiliconFlow, DeepSeek, GLM, and custom API endpoints
@@ -68,9 +69,11 @@ Twitter Reply Assistant is a Chrome extension that uses AI to generate contextua
    - Go to Twitter/X
    - Find a tweet you want to reply to
    - Click the reply button to open the reply dialog
-   - Click the 🤖 button that appears in the toolbar
-   - Select a reply style
-   - The AI-generated reply will be automatically filled in
+   - Click the 🤖 button that appears in the toolbar to generate a complete reply
+   - OR click the 📝 button to expand your seed content into a full reply
+   - For 📝 content expansion: Type a brief direction/idea, then click 📝 to expand it
+   - For 🤖 AI reply: Select a reply style and the AI will generate a complete reply
+   - The generated reply will be automatically filled in and is fully editable
 
 ### ⚙️ Configuration
 
@@ -91,6 +94,13 @@ Twitter Reply Assistant is a Chrome extension that uses AI to generate contextua
 - 👍 **Supportive** - Encouraging and positive
 - 🤔 **Critical** - Analytical and thoughtful
 - ❓ **Questioning** - Curious and exploratory
+
+#### Content Expansion
+
+- 📝 **Smart Expansion** - Type a brief direction or seed content, then click the expand button to transform it into a complete reply
+- Perfect for when you have a general idea but want to flesh it out with AI assistance
+- Combines your seed content with the original tweet context to create a relevant, expanded reply
+- Fully editable after expansion - you can modify the generated content as needed
 
 ### 🛠️ Development
 
@@ -135,6 +145,7 @@ Twitter Reply Assistant 是一个 Chrome 扩展程序，使用 AI 为 Twitter (X
 ### ✨ 功能特点
 
 - 🤖 **AI 智能回复** - 使用先进的 AI 模型生成上下文相关的回复
+- 📝 **内容扩写功能** - 将您的种子内容扩展为完整的上下文相关回复
 - 🎨 **6 种预设风格** - 专业严谨、幽默风趣、简洁明了、友好支持、批判性思考、提问引导
 - 🎭 **自定义风格** - 创建您自己的回复风格和提示词
 - 🔌 **多种 AI 提供商** - 支持 SiliconFlow、DeepSeek、智谱清言和自定义 API
@@ -187,9 +198,11 @@ Twitter Reply Assistant 是一个 Chrome 扩展程序，使用 AI 为 Twitter (X
    - 访问 Twitter/X
    - 找到您想要回复的推文
    - 点击回复按钮打开回复对话框
-   - 点击工具栏中出现的 🤖 按钮
-   - 选择一个回复风格
-   - AI 生成的回复将自动填入
+   - 点击工具栏中出现的 🤖 按钮生成完整回复
+   - 或点击 📝 按钮将您的种子内容扩写为完整回复
+   - 对于 📝 内容扩写：输入简短的方向/想法，然后点击 📝 扩展它
+   - 对于 🤖 AI 回复：选择一个回复风格，AI 将生成完整回复
+   - 生成的回复将自动填入，并且完全可编辑
 
 ### ⚙️ 配置说明
 
@@ -210,6 +223,13 @@ Twitter Reply Assistant 是一个 Chrome 扩展程序，使用 AI 为 Twitter (X
 - 👍 **友好支持** - 鼓励、积极
 - 🤔 **批判性思考** - 分析、深入
 - ❓ **提问引导** - 好奇、探索
+
+#### 内容扩写
+
+- 📝 **智能扩写** - 输入简短的方向或种子内容，点击扩展按钮将其转化为完整回复
+- 适合当您有大致想法但需要 AI 协助完善为完整回复
+- 结合您的种子内容与原推文上下文，创建相关的扩写回复
+- 扩写后完全可编辑 - 您可以根据需要修改生成的内容
 
 ### 🛠️ 开发
 
