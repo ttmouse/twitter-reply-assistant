@@ -5,8 +5,8 @@
  * 点击后显示风格选择器，选择风格后生成回复
  */
 
-import React, { useState, useRef } from 'react';
-import { Bot, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Bot, Loader2, Expand } from 'lucide-react';
 import { StyleSelector } from './StyleSelector';
 import { AIService } from '../services/ai-service';
 import { TwitterDOM } from '../utils/twitter-dom';
@@ -23,6 +23,7 @@ interface ReplyToolbarButtonProps {
 export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExpanding, setIsExpanding] = useState(false);
   const [lastError, setLastError] = useState<AppError | null>(null);
   const [lastStyleId, setLastStyleId] = useState<string | null>(null);
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
@@ -38,6 +39,76 @@ export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonPr
     }
 
     setIsOpen(!isOpen);
+  };
+
+  const handleExpandClick = async () => {
+    if (isExpanding) return;
+
+    // 获取当前回复框中的文本
+    const currentText = TwitterDOM.getCurrentReplyText(replyBox);
+    
+    // 如果回复框为空，则不处理
+    if (!currentText.trim()) {
+      showSimpleErrorToast('请先输入一些内容作为扩写的种子');
+      return;
+    }
+
+    setIsExpanding(true);
+    setLastError(null);
+
+    try {
+      console.log(`[AI Reply Toolbar] 开始内容扩写，种子: "${currentText}"`);
+
+      // 生成扩写内容
+      const expandedContent = await AIService.expandContent(tweetText, currentText);
+
+      console.log(`[AI Reply Toolbar] 内容扩写成功: "${expandedContent}"`);
+
+      // 替换扩写内容（完全替换原有内容）
+      try {
+        TwitterDOM.replaceReplyText(replyBox, expandedContent);
+        console.log('[AI Reply Toolbar] 扩写内容已替换到输入框');
+      } catch (fillError) {
+        console.error('[AI Reply Toolbar] 替换失败:', fillError);
+        throw new AppError(
+          ErrorType.TWITTER_DOM_ERROR,
+          'Failed to replace expanded content into Twitter input box',
+          fillError
+        );
+      }
+
+      // 聚焦输入框
+      replyBox.focus();
+
+      // 显示成功提示
+      showSuccessToast('✅ 内容已扩写！');
+    } catch (err: unknown) {
+      console.error('[AI Reply Toolbar] 扩写失败:', err);
+
+      // Store error for potential retry
+      if (err instanceof AppError) {
+        setLastError(err);
+        showDetailedErrorToast(err);
+      } else if (err instanceof Error) {
+        const appError = new AppError(
+          ErrorType.GENERATION_FAILED,
+          err.message,
+          err
+        );
+        setLastError(appError);
+        showDetailedErrorToast(appError);
+      } else {
+        const appError = new AppError(
+          ErrorType.GENERATION_FAILED,
+          'Unknown error occurred during expansion',
+          err
+        );
+        setLastError(appError);
+        showDetailedErrorToast(appError);
+      }
+    } finally {
+      setIsExpanding(false);
+    }
   };
 
   const handleSelectStyle = async (styleId: string) => {
@@ -117,6 +188,31 @@ export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonPr
       top: '20px',
       right: '20px',
       backgroundColor: '#00ba7c',
+      color: 'white',
+      padding: '12px 24px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      zIndex: Z_INDEX.NOTIFICATION,
+      fontSize: '14px',
+      fontWeight: '600',
+    });
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.remove();
+    }, 3000);
+  };
+
+  // 简单的错误提示
+  const showSimpleErrorToast = (message: string) => {
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    Object.assign(toast.style, {
+      position: 'fixed',
+      top: '20px',
+      right: '20px',
+      backgroundColor: '#f4212e',
       color: 'white',
       padding: '12px 24px',
       borderRadius: '8px',
@@ -219,7 +315,7 @@ export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonPr
   };
 
   return (
-    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
       {/* AI 按钮 - 模仿 Twitter 工具栏按钮样式 */}
       <button
         ref={buttonRef}
@@ -264,6 +360,50 @@ export function ReplyToolbarButton({ tweetText, replyBox }: ReplyToolbarButtonPr
           }} />
         ) : (
           <Bot size={18.75} />
+        )}
+      </button>
+
+      {/* 扩写按钮 - 模仿 Twitter 工具栏按钮样式 */}
+      <button
+        onClick={handleExpandClick}
+        disabled={isExpanding}
+        className="twitter-ai-expand-button"
+        title="内容扩写"
+        aria-label="内容扩写"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '34.75px',
+          height: '34.75px',
+          borderRadius: '50%',
+          border: 'none',
+          backgroundColor: 'transparent',
+          color: '#1d9bf0',
+          cursor: isExpanding ? 'not-allowed' : 'pointer',
+          transition: 'background-color 0.2s, color 0.2s',
+          fontSize: '17.5px',
+          padding: 0,
+          opacity: isExpanding ? 0.38 : 1,
+          position: 'relative',
+        }}
+        onMouseEnter={(e) => {
+          if (!isExpanding) {
+            e.currentTarget.style.backgroundColor = 'rgba(29, 155, 240, 0.1)';
+            e.currentTarget.style.color = '#1d9bf0';
+          }
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.color = '#536471';
+        }}
+      >
+        {isExpanding ? (
+          <Loader2 size={18.75} style={{
+            animation: 'spin 1s linear infinite',
+          }} />
+        ) : (
+          <Expand size={18.75} />
         )}
       </button>
 

@@ -26,25 +26,43 @@ export class StorageService {
    */
   static async getAIConfig(): Promise<AIConfig | null> {
     try {
+      console.log('[Storage Service] 开始加载AI配置...');
       const result = await chrome.storage.sync.get(StorageKey.AI_CONFIG);
       const config = result[StorageKey.AI_CONFIG];
 
       if (!config) {
+        console.log('[Storage Service] 存储中没有AI配置');
         return null;
       }
 
       // Validate the stored config
       if (!this.isValidAIConfig(config)) {
-        console.warn('Invalid AI config in storage, returning null');
+        console.warn('[Storage Service] 存储中的AI配置无效，返回null');
         return null;
       }
 
+      console.log('[Storage Service] AI配置加载成功');
       return config as AIConfig;
     } catch (error) {
-      console.error('Failed to get AI config:', error);
+      console.error('[Storage Service] 获取AI配置失败:', error);
+      
+      // 提供更详细的错误信息
+      let errorMessage = 'Failed to retrieve configuration';
+      
+      // 检查是否是存储配额问题
+      if (error instanceof Error) {
+        if (error.message.includes('QUOTA_BYTES_PER_ITEM') || 
+            error.message.includes('QUOTA_BYTES') ||
+            error.message.includes('MAX_WRITE_OPERATIONS_PER_MINUTE')) {
+          errorMessage = 'Browser storage quota exceeded. Please clear some data or try again later.';
+        } else if (error.message.includes('Access is denied')) {
+          errorMessage = 'Access to browser storage was denied. Please check extension permissions.';
+        }
+      }
+      
       throw new AppError(
         ErrorType.STORAGE_ERROR,
-        'Failed to retrieve configuration',
+        errorMessage,
         error
       );
     }
@@ -505,6 +523,122 @@ export class StorageService {
     if (typeof style.updatedAt !== 'number') return false;
 
     return true;
+  }
+
+  /**
+   * Check storage availability and get diagnostic information
+   * @returns Promise<{available: boolean, info?: any, error?: string}>
+   */
+  static async checkStorageAvailability(): Promise<{
+    available: boolean;
+    info?: any;
+    error?: string;
+  }> {
+    try {
+      // Check extension context
+      if (!this.isExtensionContextValid()) {
+        return {
+          available: false,
+          error: 'Extension context is invalid. Please refresh the page or restart the browser.',
+        };
+      }
+
+      // Try a simple read/write operation
+      const testKey = 'storage_test_key';
+      const testValue = { timestamp: Date.now() };
+      
+      await chrome.storage.sync.set({ [testKey]: testValue });
+      const result = await chrome.storage.sync.get(testKey);
+      
+      // Clean up
+      await chrome.storage.sync.remove(testKey);
+      
+      if (result[testKey]?.timestamp !== testValue.timestamp) {
+        return {
+          available: false,
+          error: 'Storage read/write test failed.',
+        };
+      }
+
+      // Get storage info
+      const storageInfo = await this.getStorageInfo();
+      
+      return {
+        available: true,
+        info: storageInfo,
+      };
+    } catch (error) {
+      console.error('Storage availability check failed:', error);
+      
+      let errorMessage = 'Unknown storage error';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('QUOTA_BYTES_PER_ITEM') || 
+            error.message.includes('QUOTA_BYTES') ||
+            error.message.includes('MAX_WRITE_OPERATIONS_PER_MINUTE')) {
+          errorMessage = 'Browser storage quota exceeded. Try clearing some data.';
+        } else if (error.message.includes('Access is denied')) {
+          errorMessage = 'Storage access denied. Check extension permissions.';
+        } else if (error.message.includes('Extension context invalidated')) {
+          errorMessage = 'Extension context invalidated. Please refresh the page.';
+        }
+      }
+      
+      return {
+        available: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
+   * Try to fix common storage issues
+   * @returns Promise<{success: boolean, message: string}>
+   */
+  static async attemptStorageRepair(): Promise<{ success: boolean; message: string }> {
+    try {
+      // First check storage availability
+      const check = await this.checkStorageAvailability();
+      
+      if (check.available) {
+        return { success: true, message: 'Storage is working correctly.' };
+      }
+      
+      // Try to get storage info to understand the issue
+      try {
+        const info = await this.getStorageInfo();
+        
+        // If storage is nearly full, suggest clearing data
+        if (info.percentUsed > 90) {
+          return { 
+            success: false, 
+            message: `Storage is ${info.percentUsed}% full. Consider clearing extension data.` 
+          };
+        }
+      } catch (e) {
+        console.warn('Could not get storage info during repair attempt:', e);
+      }
+      
+      // Try to repair by rechecking extension context
+      if (!this.isExtensionContextValid()) {
+        return { 
+          success: false, 
+          message: 'Extension context is invalid. Please refresh the page or restart the browser.' 
+        };
+      }
+      
+      return { 
+        success: false, 
+        message: 'Storage issue detected. Try clearing extension data and reconfiguring.' 
+      };
+      
+    } catch (error) {
+      console.error('Storage repair attempt failed:', error);
+      return { 
+        success: false, 
+        message: 'Storage repair failed. Please try clearing extension data.' 
+      };
+    }
   }
 }
 

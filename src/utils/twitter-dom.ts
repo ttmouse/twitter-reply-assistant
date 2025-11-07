@@ -592,6 +592,174 @@ export class TwitterDOM {
   }
 
   /**
+   * 获取回复框中的当前文本内容
+   */
+  static getCurrentReplyText(replyBox: HTMLElement): string {
+    // 检查元素是否仍然存在于文档中
+    if (!replyBox.isConnected) {
+      return '';
+    }
+
+    // 对于Twitter的Draft.js编辑器（contenteditable div），直接返回textContent
+    const text = replyBox.textContent || '';
+    return text.trim();
+  }
+
+  /**
+   * 清空并替换回复框内容
+   * 基于fillReplyText方法，但先清空现有内容
+   * 保持与普通填充行为一致，确保内容可编辑
+   */
+  static replaceReplyText(element: HTMLElement, text: string): void {
+    try {
+      console.log('[TwitterDOM] 开始替换文本，元素类型:', element.tagName);
+      console.log('[TwitterDOM] contenteditable:', element.getAttribute('contenteditable'));
+      console.log('[TwitterDOM] 元素是否在文档中:', element.isConnected);
+
+      // 检查元素是否仍然存在于文档中
+      if (!element.isConnected) {
+        throw new Error('元素已脱离文档，无法进行操作');
+      }
+
+      // 聚焦元素
+      element.focus();
+      console.log('[TwitterDOM] 元素已聚焦');
+
+      // 等待焦点生效后再操作
+      setTimeout(() => {
+        try {
+          // 再次检查元素是否仍然存在于文档中
+          if (!element.isConnected) {
+            console.warn('[TwitterDOM] 元素已脱离文档，停止替换操作');
+            return;
+          }
+
+          console.log('[TwitterDOM] setTimeout 开始实际替换操作，元素仍在文档中');
+
+          // 1. 先全选所有内容
+          const currentText = element.textContent || '';
+          if (currentText.length > 0) {
+            try {
+              const selection = window.getSelection();
+              if (selection && element.isConnected) {
+                const range = document.createRange();
+                range.selectNodeContents(element);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                console.log('[TwitterDOM] 已选中现有内容');
+              }
+            } catch (rangeError) {
+              console.warn('[TwitterDOM] 选中内容时出错，跳过此步骤:', rangeError);
+            }
+          }
+
+          // 2. 模拟键盘删除操作，而不是直接清空innerHTML
+          // 这样可以保持Twitter编辑器的内部状态
+          const deleteEvent = new KeyboardEvent('keydown', {
+            key: 'Backspace',
+            code: 'Backspace',
+            keyCode: 8,
+            bubbles: true,
+            cancelable: true,
+            ctrlKey: true, // 使用Ctrl+Backspace或Cmd+Backspace来删除全部内容
+            metaKey: navigator.userAgent.includes('Mac') // Mac上使用Cmd键
+          });
+
+          element.dispatchEvent(deleteEvent);
+
+          // 等待删除操作完成
+          setTimeout(() => {
+            try {
+              // 3. 使用与fillReplyText相同的方式填充新内容
+              // 使用 DataTransfer 模拟粘贴操作
+              const dataTransfer = new DataTransfer();
+              dataTransfer.setData('text/plain', text);
+
+              // 触发 paste 事件
+              const pasteEvent = new ClipboardEvent('paste', {
+                bubbles: true,
+                cancelable: true,
+                clipboardData: dataTransfer
+              });
+
+              const handled = element.dispatchEvent(pasteEvent);
+              console.log('[TwitterDOM] paste 事件已触发，handled:', handled);
+
+              // 如果 paste 事件没有被处理，使用备用方案
+              if (!pasteEvent.defaultPrevented) {
+                console.log('[TwitterDOM] paste 事件未被处理，使用直接设置方案');
+
+                // 谨慎地清空内容
+                while (element.firstChild) {
+                  element.removeChild(element.firstChild);
+                }
+
+                // 添加新内容
+                const textNode = document.createTextNode(text);
+                element.appendChild(textNode);
+
+                // 移动光标到末尾
+                try {
+                  const range = document.createRange();
+                  const sel = window.getSelection();
+                  if (sel && element.isConnected && textNode.isConnected) {
+                    range.setStart(textNode, text.length);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                  }
+                } catch (rangeError) {
+                  console.warn('[TwitterDOM] 设置光标位置时出错，跳过此步骤:', rangeError);
+                }
+
+                // 触发 beforeinput 和 input 事件
+                element.dispatchEvent(new InputEvent('beforeinput', {
+                  bubbles: true,
+                  cancelable: true,
+                  data: text,
+                  inputType: 'insertText'
+                }));
+
+                element.dispatchEvent(new InputEvent('input', {
+                  bubbles: true,
+                  cancelable: true,
+                  data: text,
+                  inputType: 'insertText'
+                }));
+              }
+
+              console.log('[TwitterDOM] ✅ 文本替换成功:', text.substring(0, 50) + '...');
+            } catch (innerError) {
+              console.error('[TwitterDOM] 替换过程出错:', innerError);
+              // 回退到简单的文本填充
+              try {
+                // 谨慎地清空内容
+                while (element.firstChild) {
+                  element.removeChild(element.firstChild);
+                }
+                element.appendChild(document.createTextNode(text));
+              } catch (fallbackError) {
+                console.error('[TwitterDOM] 回退方案也失败:', fallbackError);
+              }
+            }
+          }, 50);
+        } catch (innerError) {
+          console.error('[TwitterDOM] 替换过程出错:', innerError);
+          // 回退到简单的文本填充
+          try {
+            element.textContent = text;
+          } catch (fallbackError) {
+            console.error('[TwitterDOM] 回退方案也失败:', fallbackError);
+          }
+        }
+      }, 100);
+    } catch (error) {
+      console.error('[TwitterDOM] replaceReplyText 失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 检查回复框是否已经注入了 AI 按钮
    */
   static hasToolbarAIButton(dialog: HTMLElement): boolean {

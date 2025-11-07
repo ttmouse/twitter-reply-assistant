@@ -54,7 +54,30 @@ export class AIService {
     console.log('[AI Service] 开始生成回复...', { styleId, tweetLength: tweetText.length });
 
     // Use provided config or load from storage
-    const finalConfig = config || await StorageService.getAIConfig();
+    let finalConfig = config;
+    
+    if (!finalConfig) {
+      try {
+        console.log('[AI Service] 尝试从存储加载AI配置...');
+        finalConfig = await StorageService.getAIConfig();
+        console.log('[AI Service] AI配置加载成功:', finalConfig ? '有效' : '为空');
+      } catch (storageError) {
+        console.error('[AI Service] 从存储加载AI配置失败:', storageError);
+        
+        // 如果存储失败，提供更详细的错误信息
+        if (storageError instanceof AppError && storageError.type === ErrorType.STORAGE_ERROR) {
+          // 提供更具体的存储错误信息
+          throw new AppError(
+            ErrorType.STORAGE_ERROR,
+            'Failed to load AI configuration from storage. This might be due to browser storage quota issues or corrupted data.',
+            storageError
+          );
+        }
+        
+        // 重新抛出原始错误
+        throw storageError;
+      }
+    }
 
     if (!finalConfig) {
       console.error('[AI Service] 未找到 API 配置');
@@ -410,6 +433,189 @@ ${tweetText}
    */
   private static sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Expand content based on seed content and tweet text
+   * @param tweetText - The text content of the tweet to reply to
+   * @param seedContent - The seed content/direction provided by user
+   * @param config - AI configuration to use (if null, load from storage)
+   * @returns Promise<string> - Expanded content
+   */
+  static async expandContent(
+    tweetText: string,
+    seedContent: string,
+    config: AIConfig | null = null
+  ): Promise<string> {
+    console.log('[AI Service] 开始内容扩写...', { seedLength: seedContent.length, tweetLength: tweetText.length });
+
+    // Use provided config or load from storage
+    let finalConfig = config;
+    
+    if (!finalConfig) {
+      try {
+        console.log('[AI Service] 尝试从存储加载AI配置...');
+        finalConfig = await StorageService.getAIConfig();
+        console.log('[AI Service] AI配置加载成功:', finalConfig ? '有效' : '为空');
+      } catch (storageError) {
+        console.error('[AI Service] 从存储加载AI配置失败:', storageError);
+        
+        // 如果存储失败，提供更详细的错误信息
+        if (storageError instanceof AppError && storageError.type === ErrorType.STORAGE_ERROR) {
+          // 提供更具体的存储错误信息
+          throw new AppError(
+            ErrorType.STORAGE_ERROR,
+            'Failed to load AI configuration from storage. This might be due to browser storage quota issues or corrupted data.',
+            storageError
+          );
+        }
+        
+        // 重新抛出原始错误
+        throw storageError;
+      }
+    }
+
+    if (!finalConfig) {
+      console.error('[AI Service] 未找到 API 配置');
+      throw new AppError(
+        ErrorType.INVALID_CONFIG,
+        'AI configuration not found. Please configure the extension first.'
+      );
+    }
+
+    // Generate expanded content with retry logic
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+      try {
+        if (attempt > 0) {
+          console.log(`[AI Service] 🔄 第 ${attempt} 次重试扩写...`);
+        }
+
+        const expandedContent = await this.callExpandAPI(finalConfig, tweetText, seedContent);
+
+        console.log('[AI Service] ✅ 内容扩写成功:', {
+          length: expandedContent.length,
+          attempts: attempt + 1
+        });
+
+        return expandedContent;
+      } catch (error) {
+        lastError = error as Error;
+
+        console.warn(`[AI Service] ❌ 扩写失败 (尝试 ${attempt + 1}/${MAX_RETRY_ATTEMPTS + 1}):`,
+          error instanceof AppError ? error.getUserMessage() : (error as Error).message
+        );
+
+        // Don't retry on certain errors
+        if (error instanceof AppError && !error.isRetryable()) {
+          console.error('[AI Service] 错误不可重试:', error.type);
+          throw error;
+        }
+
+        // Wait before retry (exponential backoff)
+        if (attempt < MAX_RETRY_ATTEMPTS) {
+          const delay = Math.pow(2, attempt) * 1000; // 1s, 2s
+          console.log(`[AI Service] ⏱️ 等待 ${delay}ms 后重试...`);
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    // All retries failed
+    console.error('[AI Service] 所有重试均失败');
+
+    // Wrap in GENERATION_FAILED error for better user feedback
+    if (lastError instanceof AppError) {
+      throw lastError;
+    }
+
+    throw new AppError(
+      ErrorType.GENERATION_FAILED,
+      'Failed to expand content after multiple attempts',
+      lastError
+    );
+  }
+
+  /**
+   * Call AI API to expand content
+   * @param config - AI configuration
+   * @param tweetText - Tweet text to reply to
+   * @param seedContent - The seed content/direction provided by user
+   * @returns Promise<string> - Expanded content
+   */
+  private static async callExpandAPI(
+    config: AIConfig,
+    tweetText: string,
+    seedContent: string
+  ): Promise<string> {
+    // Build the expansion prompt
+    const expansionPrompt = `你是一位专业的内容创作者。请根据用户的种子内容/方向和原始推文，创作一条优质的Twitter回复。
+
+要求：
+1. 基于用户提供的种子内容进行扩写，保持原意但丰富表达
+2. 内容要与原始推文相关，形成有意义的回复
+3. 语言要自然、流畅，符合社交媒体交流特点
+4. 回复长度在50-200字之间，适合Twitter阅读
+5. 避免过度正式或生硬的表达
+6. 不要添加hashtag或@mention（除非原推文已提及）
+
+# 表达与排版  
+- 句子短、语气松弛、有呼吸。  
+- 每个独立思考或情绪变化之间插入空行。  
+- 在逻辑停顿、语义转折或逗号后可换行，让思考有节奏。  
+- 强调句或反转句单独成段，前后留白。  
+- 每段控制在 1–4 行之间，视觉上轻盈。  
+
+`;
+
+    // Build the request
+    const request: ChatCompletionRequest = {
+      model: config.model,
+      messages: [
+        {
+          role: 'system',
+          content: expansionPrompt,
+        },
+        {
+          role: 'user',
+          content: `请根据以下信息生成一条Twitter回复：
+
+原始推文：
+${tweetText}
+
+用户种子内容/方向：
+${seedContent}
+
+请基于以上信息生成一条优质的Twitter回复：`,
+        },
+      ],
+      max_tokens: 300,
+      temperature: 0.7,
+    };
+
+    try {
+      // Make API call
+      const response = await axios.post<ChatCompletionResponse>(
+        config.apiUrl,
+        request,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${config.apiToken}`,
+          },
+          timeout: API_TIMEOUT,
+        }
+      );
+
+      // Extract content from response
+      const content = this.extractReply(response.data);
+
+      // Truncate if needed
+      return this.truncateReply(content);
+    } catch (error) {
+      throw this.handleAPIError(error);
+    }
   }
 
   /**
