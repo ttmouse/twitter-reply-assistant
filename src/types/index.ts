@@ -439,6 +439,11 @@ export const TWITTER_SELECTORS = {
   REPLY_TEXTAREA: '[data-testid="tweetTextarea_0"]',
   TWEET_BUTTON: '[data-testid="tweetButtonInline"]',
   SHOW_MORE_BUTTON: '[data-testid="tweet-text-show-more-link"]',
+  // Compose box (homepage tweet composition) selectors
+  COMPOSE_DIALOG: '[data-testid="dialogInner"]',
+  COMPOSE_TEXTAREA: '[data-testid="tweetTextarea_0"]',
+  COMPOSE_TOOLBAR: '[data-testid="toolBar"]',
+  COMPOSE_SCROLL_SNAP_LIST: '[data-testid="ScrollSnap-List"]',
 } as const;
 
 // ==================== Constants ====================
@@ -461,7 +466,7 @@ export const MAX_RETRY_ATTEMPTS = 2;
 /**
  * Debounce delay for DOM operations (milliseconds)
  */
-export const DOM_DEBOUNCE_DELAY = 100;
+export const DOM_DEBOUNCE_DELAY = 500; // 增加到500ms，避免过于频繁的检测
 
 // ==================== Custom Style Constraints ====================
 

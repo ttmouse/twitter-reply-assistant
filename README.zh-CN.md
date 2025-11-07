@@ -26,7 +26,7 @@ Twitter Reply Assistant 是一个 Chrome 扩展程序，使用 AI 为 Twitter (X
 1. **下载扩展程序**
 
    ```bash
-   git clone https://github.com/yourusername/TwitterReplyAssistant.git
+   git clone https://github.com/ttmouse/TwitterReplyAssistant.git
    cd TwitterReplyAssistant
    ```
 
@@ -45,7 +45,7 @@ Twitter Reply Assistant 是一个 Chrome 扩展程序，使用 AI 为 Twitter (X
 
 ### 方法二：下载发布版本
 
-1. 前往 [Releases](https://github.com/yourusername/TwitterReplyAssistant/releases) 页面
+1. 前往 [Releases](https://github.com/ttmouse/TwitterReplyAssistant/releases) 页面
 2. 下载最新的 `twitter-reply-assistant.zip`
 3. 解压 ZIP 文件
 4. 打开 Chrome，访问 `chrome://extensions/`
@@ -101,7 +101,7 @@ Twitter Reply Assistant 是一个 Chrome 扩展程序，使用 AI 为 Twitter (X
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/TwitterReplyAssistant.git
+git clone https://github.com/ttmouse/TwitterReplyAssistant.git
 cd TwitterReplyAssistant
 
 # 安装依赖
@@ -131,7 +131,7 @@ MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
 ## 🐛 问题反馈
 
-如果您遇到任何问题或有功能建议，请在 [Issues](https://github.com/yourusername/TwitterReplyAssistant/issues) 中提出。
+如果您遇到任何问题或有功能建议，请在 [Issues](https://github.com/ttmouse/twitter-reply-assistant/issues) 中提出。
 
 ## ⭐ Star History
 
@@ -140,5 +140,5 @@ MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/yourusername">Bruce Yang</a>
+  Made with ❤️ by <a href="https://github.com/ttmouse">ttmouse</a>
 </p>

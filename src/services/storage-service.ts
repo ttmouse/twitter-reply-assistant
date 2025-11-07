@@ -129,6 +129,23 @@ export class StorageService {
   }
 
   /**
+   * Clear all custom styles
+   */
+  static async clearCustomStyles(): Promise<void> {
+    try {
+      await chrome.storage.sync.remove(StorageKey.CUSTOM_STYLES as string);
+      console.log('Custom styles cleared');
+    } catch (error) {
+      console.error('Failed to clear custom styles:', error);
+      throw new AppError(
+        ErrorType.STORAGE_ERROR,
+        'Failed to clear custom styles',
+        error
+      );
+    }
+  }
+
+  /**
    * Get all stored data (for debugging)
    * @returns Promise<Record<string, any>>
    */

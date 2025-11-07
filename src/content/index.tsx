@@ -9,6 +9,8 @@ import './styles-optimized.css';
 
 // 导入注入器
 import { twitterInjector } from './twitter-injector.tsx';
+import { composeInjector } from './compose-injector.tsx';
+import { floatingInjector } from './floating-injector.tsx';
 import { StorageService } from '../services/storage-service';
 
 console.log('[Twitter Reply Assistant] Content script 已加载');
@@ -32,20 +34,24 @@ async function initialize() {
     // 添加随机延迟，避免被检测（2-5秒）
     const delay = 2000 + Math.random() * 3000;
 
-    setTimeout(() => {
-      // 等待页面完全加载
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-          // 再次延迟启动
-          setTimeout(() => {
-            twitterInjector.start();
-          }, 1000);
-        });
-      } else {
-        // 页面已加载，延迟后启动
-        twitterInjector.start();
-      }
-    }, delay);
+      setTimeout(() => {
+        // 等待页面完全加载
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => {
+            // 再次延迟启动
+            setTimeout(() => {
+              twitterInjector.start();
+              composeInjector.start();
+              floatingInjector.start();
+            }, 1000);
+          });
+        } else {
+          // 页面已加载，延迟后启动
+          twitterInjector.start();
+          composeInjector.start();
+          floatingInjector.start();
+        }
+      }, delay);
 
     // 监听配置变化
     StorageService.onConfigChange((config) => {
@@ -54,10 +60,13 @@ async function initialize() {
         // 延迟重新注入
         setTimeout(() => {
           twitterInjector.reinjectAll();
+          composeInjector.reinjectAll();
         }, 1000);
       } else {
         console.log('[Twitter Reply Assistant] 配置已清除，停止注入器');
         twitterInjector.stop();
+        composeInjector.stop();
+        floatingInjector.stop();
       }
     });
 
@@ -76,9 +85,26 @@ setTimeout(() => {
 if (typeof window !== 'undefined') {
   (window as any).twitterAIReply = {
     injector: twitterInjector,
-    reinject: () => twitterInjector.reinjectAll(),
-    stop: () => twitterInjector.stop(),
-    start: () => twitterInjector.start(),
+    composeInjector: composeInjector,
+    floatingInjector: floatingInjector,
+    reinject: () => {
+      twitterInjector.reinjectAll();
+      composeInjector.reinjectAll();
+      floatingInjector.reinject();
+    },
+    reinjectReply: () => twitterInjector.reinjectAll(),
+    reinjectCompose: () => composeInjector.reinjectAll(),
+    reinjectFloating: () => floatingInjector.reinject(),
+    stop: () => {
+      twitterInjector.stop();
+      composeInjector.stop();
+      floatingInjector.stop();
+    },
+    start: () => {
+      twitterInjector.start();
+      composeInjector.start();
+      floatingInjector.start();
+    },
   };
 
   console.log('[Twitter Reply Assistant] 调试工具已挂载到 window.twitterAIReply');

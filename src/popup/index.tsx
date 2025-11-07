@@ -13,14 +13,27 @@ import { Input, Select, FormError } from '../components/Form';
 import { Tabs, TabPanel } from '../components/Tabs';
 import { colors, spacing, typography, borderRadius, shadows, transitions, container } from '../styles/design-tokens';
 import { injectGlobalStyles } from '../styles/global-styles';
-import { FlaskConical, Zap, Settings, Database, Bug, TestTube, AlertCircle } from 'lucide-react';
+import { FlaskConical, Zap, Settings, Database, Bug, TestTube, AlertCircle, HardDrive } from 'lucide-react';
+import { runStorageDiagnostic, clearStorageData } from '../utils/storage-diagnostic';
+
+// 格式化字节数为可读格式
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'config' | 'test' | 'customStyles'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'test' | 'customStyles' | 'storage'>('config');
   const [config, setConfig] = useState<AIConfig | null>(null);
   const [showToast, setShowToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isStorageDiagnostic, setIsStorageDiagnostic] = useState(false);
 
   // 浮层相关状态
   const [showTestModal, setShowTestModal] = useState(false);
@@ -35,6 +48,10 @@ function App() {
 
   // 测试相关状态
   const [testStyle, setTestStyle] = useState('humorous');
+  
+  // 存储诊断状态
+  const [storageDiagnostic, setStorageDiagnostic] = useState<any>(null);
+  const [showStorageRepair, setShowStorageRepair] = useState(false);
 
   // 配置表单状态
   const [formData, setFormData] = useState<AIConfig>({
@@ -73,7 +90,11 @@ function App() {
       setStorageInfo(info);
     } catch (error: unknown) {
       console.error('加载数据失败:', error);
-      // Don't show error in UI for load failures, just log it
+      // 如果存储加载失败，显示存储诊断选项
+      setStorageDiagnostic({
+        error: error instanceof Error ? error.message : '未知错误',
+        recommendations: ['运行存储诊断检查问题', '尝试清除扩展数据后重新配置']
+      });
     }
   };
 
@@ -253,6 +274,89 @@ function App() {
       const formattedError = ErrorHelper.formatForUser(error);
       setShowToast({
         message: `清除失败：${formattedError.split('\n')[0]}`,
+        type: 'error'
+      });
+      setTimeout(() => setShowToast(null), 5000);
+    }
+  };
+  
+  // 存储诊断和修复
+  const diagnoseStorage = async () => {
+    setIsStorageDiagnostic(true);
+    try {
+      const diagnostic = await runStorageDiagnostic();
+      setStorageDiagnostic(diagnostic.results);
+      
+      if (diagnostic.success) {
+        setShowToast({
+          message: '✅ 存储系统正常',
+          type: 'success'
+        });
+        setTimeout(() => setShowToast(null), 3000);
+        await loadData(); // 重新加载数据
+      } else {
+        setShowToast({
+          message: '❌ 存储系统异常',
+          type: 'error'
+        });
+        setTimeout(() => setShowToast(null), 3000);
+      }
+    } catch (error) {
+      console.error('存储诊断失败:', error);
+      setShowToast({
+        message: '诊断失败: ' + (error instanceof Error ? error.message : '未知错误'),
+        type: 'error'
+      });
+      setTimeout(() => setShowToast(null), 5000);
+    } finally {
+      setIsStorageDiagnostic(false);
+    }
+  };
+  
+  // 修复存储问题
+  const repairStorage = async (option: 'config' | 'styles' | 'all') => {
+    try {
+      let result;
+      switch (option) {
+        case 'config':
+          result = await clearStorageData({ clearConfig: true });
+          break;
+        case 'styles':
+          result = await clearStorageData({ clearCustomStyles: true });
+          break;
+        case 'all':
+          if (!confirm('确定要清除所有扩展数据吗？这将删除您的配置和自定义风格。')) return;
+          result = await clearStorageData({ clearAll: true });
+          setConfig(null);
+          setFormData({
+            provider: 'siliconflow',
+            apiUrl: PROVIDER_URLS.siliconflow,
+            apiToken: '',
+            model: 'Qwen/Qwen2.5-7B-Instruct',
+          });
+          break;
+      }
+      
+      if (result.success) {
+        setShowToast({
+          message: `✅ ${result.message}`,
+          type: 'success'
+        });
+        setTimeout(() => setShowToast(null), 3000);
+        await loadData(); // 重新加载数据
+        setShowStorageRepair(false);
+        setStorageDiagnostic(null);
+      } else {
+        setShowToast({
+          message: `❌ ${result.message}`,
+          type: 'error'
+        });
+        setTimeout(() => setShowToast(null), 5000);
+      }
+    } catch (error) {
+      console.error('修复存储失败:', error);
+      setShowToast({
+        message: '修复失败: ' + (error instanceof Error ? error.message : '未知错误'),
         type: 'error'
       });
       setTimeout(() => setShowToast(null), 5000);
@@ -467,16 +571,17 @@ function App() {
           flexShrink: 0,
         }}
       >
-        <Tabs
-          items={[
-            { id: 'config', label: 'API 配置', icon: <Settings size={14} /> },
-            { id: 'customStyles', label: '自定义', icon: <FlaskConical size={14} /> },
-            { id: 'test', label: '测试', icon: <TestTube size={14} /> }
-          ]}
-          activeId={activeTab}
-          onChange={(id) => setActiveTab(id as any)}
-          size="sm"
-        />
+      <Tabs
+        items={[
+          { id: 'config', label: 'API 配置', icon: <Settings size={14} /> },
+          { id: 'customStyles', label: '自定义', icon: <FlaskConical size={14} /> },
+          { id: 'test', label: '测试', icon: <TestTube size={14} /> },
+          { id: 'storage', label: '存储', icon: <HardDrive size={14} /> }
+        ]}
+        activeId={activeTab}
+        onChange={(id) => setActiveTab(id as any)}
+        size="sm"
+      />
       </div>
 
       {/* 内容区域 */}
@@ -803,6 +908,349 @@ function App() {
                   >
                     请先配置 API Token 才能进行测试
                   </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </TabPanel>
+        
+        {/* 存储诊断标签页 */}
+        <TabPanel active={activeTab === 'storage'} tabId="storage">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[3] }}>
+            {/* 存储信息卡片 */}
+            {storageInfo && (
+              <div
+                style={{
+                  padding: spacing[4],
+                  background: colors.bg.elevated,
+                  border: `1px solid ${colors.bg.borderLight}`,
+                  borderRadius: borderRadius.md,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing[3],
+                    marginBottom: spacing[3],
+                  }}
+                >
+                  <HardDrive size={20} style={{ color: colors.primary[500] }} />
+                  <div>
+                    <h3
+                      style={{
+                        fontSize: typography.fontSize.base,
+                        fontWeight: typography.fontWeight.semibold,
+                        color: colors.text.primary,
+                        margin: 0,
+                        marginTop: 0,
+                      }}
+                    >
+                      存储状态
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: typography.fontSize.sm,
+                        color: colors.text.secondary,
+                        margin: 0,
+                      }}
+                    >
+                      浏览器扩展存储使用情况
+                    </p>
+                  </div>
+                </div>
+                
+                <div
+                  style={{
+                    background: colors.bg.primary,
+                    borderRadius: borderRadius.base,
+                    padding: spacing[3],
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: spacing[2],
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: typography.fontSize.sm,
+                    }}
+                  >
+                    <span style={{ color: colors.text.secondary }}>已使用</span>
+                    <span style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>
+                      {formatBytes(storageInfo.bytesInUse)}
+                    </span>
+                  </div>
+                  
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: typography.fontSize.sm,
+                    }}
+                  >
+                    <span style={{ color: colors.text.secondary }}>总容量</span>
+                    <span style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>
+                      {formatBytes(storageInfo.quota)}
+                    </span>
+                  </div>
+                  
+                  <div
+                    style={{
+                      marginTop: spacing[2],
+                      height: '8px',
+                      background: colors.bg.border,
+                      borderRadius: borderRadius.full,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${storageInfo.percentUsed}%`,
+                        background: storageInfo.percentUsed > 80 
+                          ? colors.error[500] 
+                          : storageInfo.percentUsed > 60 
+                            ? colors.warning[500] 
+                            : colors.success[500],
+                        borderRadius: borderRadius.full,
+                        transition: `all ${transitions.duration.normal} ${transitions.easing.easeOut}`,
+                      }}
+                    />
+                  </div>
+                  
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      fontSize: typography.fontSize.xs,
+                      color: storageInfo.percentUsed > 80 
+                        ? colors.error[500] 
+                        : storageInfo.percentUsed > 60 
+                          ? colors.warning[500] 
+                          : colors.text.secondary,
+                    }}
+                  >
+                    {storageInfo.percentUsed}% 已使用
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* 存储诊断结果 */}
+            {storageDiagnostic && (
+              <div
+                style={{
+                  padding: spacing[4],
+                  background: storageDiagnostic.storageAvailable 
+                    ? `${colors.success[500]}15`
+                    : `${colors.error[500]}15`,
+                  border: storageDiagnostic.storageAvailable 
+                    ? `1px solid ${colors.success[500]}30`
+                    : `1px solid ${colors.error[500]}30`,
+                  borderRadius: borderRadius.md,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing[2],
+                    marginBottom: spacing[3],
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: borderRadius.full,
+                      background: storageDiagnostic.storageAvailable 
+                        ? colors.success[500]
+                        : colors.error[500],
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFFFFF',
+                    }}
+                  >
+                    {storageDiagnostic.storageAvailable ? '✓' : '!'}
+                  </div>
+                  <div>
+                    <h3
+                      style={{
+                        fontSize: typography.fontSize.base,
+                        fontWeight: typography.fontWeight.semibold,
+                        color: colors.text.primary,
+                        margin: 0,
+                      }}
+                    >
+                      存储诊断结果
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: typography.fontSize.sm,
+                        color: colors.text.secondary,
+                        margin: 0,
+                      }}
+                    >
+                      扩展上下文: {storageDiagnostic.contextValid ? '✅ 有效' : '❌ 无效'} | 
+                      存储可用性: {storageDiagnostic.storageAvailable ? '✅ 正常' : '❌ 异常'}
+                    </p>
+                  </div>
+                </div>
+                
+                {storageDiagnostic.error && (
+                  <div
+                    style={{
+                      padding: spacing[3],
+                      background: colors.bg.primary,
+                      borderRadius: borderRadius.base,
+                      fontSize: typography.fontSize.sm,
+                      color: colors.text.secondary,
+                      marginBottom: spacing[3],
+                    }}
+                  >
+                    <strong>错误信息:</strong> {storageDiagnostic.error}
+                  </div>
+                )}
+                
+                {storageDiagnostic.recommendations && storageDiagnostic.recommendations.length > 0 && (
+                  <div>
+                    <h4
+                      style={{
+                        fontSize: typography.fontSize.sm,
+                        fontWeight: typography.fontWeight.semibold,
+                        color: colors.text.primary,
+                        margin: `0 0 ${spacing[2]} 0`,
+                      }}
+                    >
+                      建议操作:
+                    </h4>
+                    <ul
+                      style={{
+                        margin: 0,
+                        paddingLeft: spacing[5],
+                        color: colors.text.secondary,
+                        fontSize: typography.fontSize.sm,
+                      }}
+                    >
+                      {storageDiagnostic.recommendations.map((rec: string, index: number) => (
+                        <li key={index} style={{ marginBottom: spacing[1] }}>
+                          {rec}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* 操作按钮 */}
+            <div>
+              <ButtonGroup fullWidth spacing={3}>
+                <Button
+                  variant="outline"
+                  onClick={diagnoseStorage}
+                  disabled={isStorageDiagnostic}
+                  loading={isStorageDiagnostic}
+                  size="md"
+                  leftIcon={<Bug size={16} />}
+                >
+                  {isStorageDiagnostic ? '诊断中...' : '运行诊断'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowStorageRepair(!showStorageRepair)}
+                  size="md"
+                  leftIcon={<HardDrive size={16} />}
+                >
+                  修复选项
+                </Button>
+              </ButtonGroup>
+            </div>
+            
+            {/* 修复选项面板 */}
+            {showStorageRepair && (
+              <div
+                style={{
+                  padding: spacing[4],
+                  background: `${colors.warning[500]}15`,
+                  border: `1px solid ${colors.warning[500]}30`,
+                  borderRadius: borderRadius.md,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing[2],
+                    marginBottom: spacing[3],
+                  }}
+                >
+                  <AlertCircle size={16} style={{ color: colors.warning[500] }} />
+                  <h3
+                    style={{
+                      fontSize: typography.fontSize.sm,
+                      fontWeight: typography.fontWeight.semibold,
+                      color: colors.text.primary,
+                      margin: 0,
+                    }}
+                  >
+                    存储修复选项
+                  </h3>
+                </div>
+                
+                <p
+                  style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                    margin: `0 0 ${spacing[3]} 0`,
+                  }}
+                >
+                  如果您遇到存储操作失败的问题，可以尝试以下修复选项。请注意，这些操作可能会删除部分数据。
+                </p>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing[2] }}>
+                  <Button
+                    variant="outline"
+                    onClick={() => repairStorage('config')}
+                    size="sm"
+                    fullWidth
+                    style={{ 
+                      justifyContent: 'flex-start',
+                      borderColor: colors.warning[500] + '50',
+                      color: colors.warning[500]
+                    }}
+                  >
+                    清除 AI 配置
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => repairStorage('styles')}
+                    size="sm"
+                    fullWidth
+                    style={{ 
+                      justifyContent: 'flex-start',
+                      borderColor: colors.warning[500] + '50',
+                      color: colors.warning[500]
+                    }}
+                  >
+                    清除自定义风格
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => repairStorage('all')}
+                    size="sm"
+                    fullWidth
+                    style={{ 
+                      justifyContent: 'flex-start',
+                      borderColor: colors.error[500] + '50',
+                      color: colors.error[500]
+                    }}
+                  >
+                    清除所有数据
+                  </Button>
                 </div>
               </div>
             )}

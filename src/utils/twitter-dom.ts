@@ -765,4 +765,269 @@ export class TwitterDOM {
   static hasToolbarAIButton(dialog: HTMLElement): boolean {
     return dialog.querySelector('.twitter-ai-toolbar-container') !== null;
   }
+
+  /**
+   * 查找首页发布框对话框（带缓存优化）
+   */
+  static findComposeDialog(): HTMLElement | null {
+    // 先快速检查是否已有缓存的激活对话框
+    const existingDialog = document.querySelector('[data-ai-compose-dialog="active"]') as HTMLElement;
+    if (existingDialog && this.isComposeDialogActive()) {
+      return existingDialog;
+    }
+
+    // 首页发布框的特征：包含发布文本框但没有引用推文
+    const textareas = document.querySelectorAll('[data-testid="tweetTextarea_0"]');
+
+    for (const textarea of textareas) {
+      // 查找最近的对话框或容器
+      const dialog = textarea.closest('[role="dialog"]') as HTMLElement;
+
+      if (dialog) {
+        // 通过检查对话框是否没有引用推文来区分首页发布框和回复框
+        const hasQuotedTweet = dialog.querySelector('[data-testid="quotedTweet"]');
+
+        if (!hasQuotedTweet) {
+          // 额外检查：确保这是发布框而不是回复框
+          // 发布框通常包含"Post"按钮而不是"Reply"按钮
+          const postButton = dialog.querySelector('[data-testid="tweetButtonInline"]');
+
+          if (postButton) {
+            // 缓存这个对话框，避免重复查找
+            dialog.setAttribute('data-ai-compose-dialog', 'active');
+            return dialog;
+          }
+        }
+      }
+    }
+
+    // 新方案：查找首页的输入框，不一定在对话框中
+    // 新版Twitter首页可能使用直接激活的输入框，而不是对话框
+
+    for (const textarea of textareas) {
+      // 检查是否在首页（非对话框）
+      if (!textarea.closest('[role="dialog"]')) {
+        // 检查是否在主页内容区域
+        const homeContainer = textarea.closest('main');
+        if (homeContainer) {
+          // 返回输入框的父容器作为"对话框"的替代
+          const parentContainer = textarea.closest('div[role="group"], div[style*="border"]');
+          if (parentContainer) {
+            parentContainer.setAttribute('data-ai-compose-dialog', 'active');
+            return parentContainer as HTMLElement;
+          } else {
+            // 如果找不到合适的容器，返回输入框本身
+            // 我们需要确保返回的是可以添加按钮的容器
+            const nextElement = textarea.nextElementSibling;
+            if (nextElement && nextElement.querySelector('[data-testid="toolBar"]')) {
+              nextElement.setAttribute('data-ai-compose-dialog', 'active');
+              return nextElement as HTMLElement;
+            }
+            // 最后的备用方案：返回输入框的父元素
+            const parent = textarea.parentElement as HTMLElement;
+            if (parent) {
+              parent.setAttribute('data-ai-compose-dialog', 'active');
+              return parent;
+            }
+          }
+        }
+      }
+    }
+
+    // 备用方案：查找任何包含发布文本框和发布按钮的容器
+    for (const textarea of textareas) {
+      const parent = textarea.closest('div[role="dialog"]') as HTMLElement;
+      if (parent) {
+        const postButton = parent.querySelector('[data-testid="tweetButtonInline"]');
+        if (postButton) {
+          parent.setAttribute('data-ai-compose-dialog', 'active');
+          return parent;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 检查发布框是否处于激活状态（输入框获得焦点或有内容）
+   * 带缓存机制，避免重复检查
+   */
+  private static composeDialogActiveCache: boolean | null = null;
+  private static lastCheckTime = 0;
+  private static readonly CHECK_CACHE_DURATION = 1000; // 缓存1秒
+
+  static isComposeDialogActive(): boolean {
+    const now = Date.now();
+
+    // 如果在缓存有效期内，直接返回缓存结果
+    if (this.composeDialogActiveCache !== null &&
+        now - this.lastCheckTime < this.CHECK_CACHE_DURATION) {
+      return this.composeDialogActiveCache;
+    }
+
+    const dialog = this.findComposeDialog();
+    if (!dialog) {
+      this.composeDialogActiveCache = false;
+      this.lastCheckTime = now;
+      return false;
+    }
+
+    // 检查是否有内容
+    const editor = this.getComposeTextarea();
+    let isActive = false;
+
+    if (editor && editor.textContent && editor.textContent.trim().length > 0) {
+      isActive = true;
+    }
+    // 检查是否获得焦点
+    else if (editor && editor === document.activeElement) {
+      isActive = true;
+    }
+    // 检查发布按钮是否可用（有内容时变为可用）
+    else if (editor && editor.offsetParent !== null) {
+      isActive = true;
+    }
+
+    // 缓存结果
+    this.composeDialogActiveCache = isActive;
+    this.lastCheckTime = now;
+
+    return isActive;
+  }
+
+  /**
+   * 获取首页发布框的文本输入区域
+   */
+  static getComposeTextarea(): HTMLElement | null {
+    const dialog = this.findComposeDialog();
+    if (!dialog) {
+      return null;
+    }
+    
+    // 首先尝试找到实际的编辑区域
+    const editor = dialog.querySelector('.public-DraftEditor-content') as HTMLElement;
+    if (editor) {
+      return editor;
+    }
+    
+    // 备用方案：返回tweetTextarea_0元素
+    return dialog.querySelector('[data-testid="tweetTextarea_0"]') as HTMLElement;
+  }
+
+  /**
+   * 检查是否在Twitter首页
+   */
+  static isOnHomePage(): boolean {
+    const pathname = window.location.pathname;
+    // 首页路径通常是 "/" 或 "/home"
+    return pathname === '/' || pathname === '/home';
+  }
+
+  /**
+   * 获取首页发布框的工具栏
+   */
+  static getComposeToolbar(): HTMLElement | null {
+    const dialog = this.findComposeDialog();
+    if (!dialog) {
+      return null;
+    }
+
+    // 尝试查找工具栏 - 使用实际HTML中的选择器
+    const toolbar = dialog.querySelector('[data-testid="toolBar"]') as HTMLElement;
+    if (toolbar) {
+      return toolbar;
+    }
+
+    // 备用方案：查找包含ScrollSnap-List的导航容器
+    const scrollSnapList = dialog.querySelector('[data-testid="ScrollSnap-List"]') as HTMLElement;
+    if (scrollSnapList) {
+      return scrollSnapList.parentElement as HTMLElement;
+    }
+
+    // 备用方案2：查找包含媒体按钮、表情符号按钮等的容器
+    const mediaButton = dialog.querySelector('input[data-testid="fileInput"]') as HTMLElement;
+    if (mediaButton) {
+      let parent = mediaButton.parentElement;
+      while (parent && parent !== dialog) {
+        // 查找包含多个按钮的容器
+        const buttons = parent.querySelectorAll('[role="button"]');
+        if (buttons.length >= 2) {
+          return parent;
+        }
+        parent = parent.parentElement;
+      }
+    }
+
+    // 新方案：对于直接激活的输入框，可能在相邻元素中有工具栏
+    const textarea = this.getComposeTextarea();
+    if (textarea) {
+      // 查找输入框的下一个兄弟元素
+      let nextElement = textarea.nextElementSibling as HTMLElement;
+      while (nextElement) {
+        const childToolbar = nextElement.querySelector('[data-testid="toolBar"]') as HTMLElement;
+        if (childToolbar) {
+          return childToolbar;
+        }
+        
+        // 检查当前元素是否是工具栏（包含多个按钮）
+        const buttons = nextElement.querySelectorAll('[role="button"]');
+        if (buttons.length >= 2 && buttons.length <= 10) {
+          return nextElement;
+        }
+        
+        nextElement = nextElement.nextElementSibling as HTMLElement;
+      }
+      
+      // 向上查找父元素中的工具栏
+      let parent = textarea.parentElement;
+      while (parent) {
+        const parentToolbar = parent.querySelector('[data-testid="toolBar"]') as HTMLElement;
+        if (parentToolbar) {
+          return parentToolbar;
+        }
+        
+        // 检查当前父元素是否是工具栏
+        const parentButtons = parent.querySelectorAll('[role="button"]');
+        if (parentButtons.length >= 2 && parentButtons.length <= 10) {
+          return parent as HTMLElement;
+        }
+        
+        parent = parent.parentElement;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 检查首页发布框是否已经注入了AI按钮
+   */
+  static hasComposeAIButton(): boolean {
+    const dialog = this.findComposeDialog();
+    if (!dialog) {
+      return false;
+    }
+    
+    return dialog.querySelector('.twitter-compose-ai-container') !== null;
+  }
+
+  /**
+   * 获取当前在首页发布框中输入的文本内容
+   */
+  static getComposeText(): string {
+    const editor = this.getComposeTextarea();
+    if (!editor) {
+      return '';
+    }
+
+    // 对于Draft.js编辑器，textContent可能包含额外的元素
+    // 尝试从编辑器中获取纯文本
+    const draftContent = editor.querySelector('[data-contents="true"]');
+    if (draftContent) {
+      return draftContent.textContent?.trim() || '';
+    }
+
+    return editor.textContent?.trim() || '';
+  }
 }
